@@ -1,0 +1,8 @@
+CREATE TABLE Users (
+    UserID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(16) NOT NULL UNIQUE,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    PasswordHash VARCHAR(255) NOT NULL,
+    Role ENUM('Citizen', 'Admin_Level1', 'Admin_Level2') NOT NULL DEFAULT 'Citizen',
+    RegistrationTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
