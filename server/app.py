@@ -4,9 +4,11 @@ from dotenv import load_dotenv
 import mysql.connector
 from mysql.connector import Error
 import bcrypt
+from flask_cors import CORS
 
 # Create an instance of a Flask application
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 load_dotenv()
 
