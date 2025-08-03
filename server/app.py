@@ -40,8 +40,12 @@ def register_user():
   username = data.get('username')
   email = data.get('email')
   password = data.get('password')
-  if not username or not email or not password:
-    return make_response(jsonify({"error": "Missing username, email, or password"}), 400)
+  if not username:
+    return make_response(jsonify({"error": "Missing username"}), 400)
+  if not email:
+    return make_response(jsonify({"error": "Missing email"}), 400)
+  if not password:
+    return make_response(jsonify({"error": "Missing password"}), 400)
   
   password_bytes = password.encode('utf-8')
   hashed_password = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
@@ -58,7 +62,12 @@ def register_user():
   except mysql.connector.Error as err:
     if err.errno == 1062:
       print(f"Error: {err}")
-      return make_response(jsonify({"error": "Username or email already exists"}), 409)
+      cursor.execute("SELECT 1 FROM users WHERE Username = %s", (username,))
+      if cursor.fetchone():
+        return make_response(jsonify({"error": "Username already exists in the database"}), 409)
+      cursor.execute("SELECT 1 FROM users WHERE Email = %s", (email,))
+      if cursor.fetchone():
+        return make_response(jsonify({"error": "Email already exists in the database"}), 409)
     else:
       print(f"Error: {err}")
       return make_response(jsonify({"error": f"Failed to register user: {err}"}), 500)

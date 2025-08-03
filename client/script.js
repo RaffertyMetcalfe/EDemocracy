@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     const form = document.getElementById('register-form');
+    const messageContainer = document.getElementById('message-container');
 
     form.addEventListener('submit', async (event) => {
         
@@ -28,16 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
 
-            // TODO: display this message on the page.
             console.log('Server response:', result);
             
             if (response.ok) {
                 console.log('Registration successful!');
+                messageContainer.textContent = result.message || 'Registration successful!';
+                messageContainer.classList.add('success');
             } else {
                 console.error('Registration failed:', result.error);
+                messageContainer.textContent = result.message || 'Registration failed. Please try again.';
+                messageContainer.classList.add('error');
+                form.reset();
             }
 
         } catch (error) {
+            messageContainer.textContent = 'Could not connect to the server. Please try again later.';
+            messageContainer.classList.add('error-message');
             console.error('An error occurred:', error);
         }
     });
