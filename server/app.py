@@ -75,5 +75,43 @@ def register_user():
     cursor.close()
     conn.close()
     
+@app.route('/api/users/login', methods=['POST'])
+def login_user():
+  data = request.get_json()
+  email = data.get('email')
+  password = data.get('password')
+  
+  if not email:
+    return make_response(jsonify({"error": "Missing email"}), 400)
+  if not password:
+    return make_response(jsonify({"error": "Missing password"}), 400)
+  
+  conn = get_db_connection()
+  if not conn:
+    return make_response(jsonify({"error": "Database connection failed"}), 500)
+  
+  cursor = conn.cursor()
+  try:
+    cursor.execute("SELECT PasswordHash FROM users WHERE Email = %s", (email,))
+    result = cursor.fetchone()
+    
+    if result is None:
+      return make_response(jsonify({"error": "Invalid email or password"}), 401)
+    
+    stored_password_hash = result[0]
+    
+    if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
+      return jsonify({"message": "Login successful"}), 200
+    else:
+      return make_response(jsonify({"error": "Invalid email or password"}), 401)
+  
+  except mysql.connector.Error as err:
+    print(f"Error: {err}")
+    return make_response(jsonify({"error": f"Failed to login user: {err}"}), 500)
+  
+  finally:
+    cursor.close()
+    conn.close()    
+
 if __name__ == '__main__':
   app.run(debug=True, port=5000)
