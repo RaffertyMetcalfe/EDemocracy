@@ -25,17 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            const result = await response.json();
+            const data = await response.json();
 
-            console.log('Server response:', result);
-            
-            if (response.ok) {
+            console.log('Server response:', data);
+
+            if (response.ok && data.token) {
+                localStorage.setItem('authToken', data.token);
                 console.log('Login successful!');
-                messageContainer.textContent = result.message || 'Login successful!';
+                messageContainer.textContent = data.message || 'Login successful!';
                 messageContainer.classList.add('success');
+                window.location.href = 'feed.html';
             } else {
-                console.error('Registration failed:', result.error);
-                messageContainer.textContent = result.message || 'Login failed. Please try again.';
+                const errorMsg = data.error || data.message || 'Login failed. Please try again.';
+                console.error('Login failed:', data.error);
+                messageContainer.textContent = errorMsg;
                 messageContainer.classList.add('error');
                 form.reset();
             }

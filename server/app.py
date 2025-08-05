@@ -5,10 +5,13 @@ import mysql.connector
 from mysql.connector import Error
 import bcrypt
 from flask_cors import CORS
+import jwt
+import datetime
 
 # Create an instance of a Flask application
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 load_dotenv()
 
@@ -94,6 +97,8 @@ def login_user():
   try:
     cursor.execute("SELECT PasswordHash FROM users WHERE Email = %s", (email,))
     result = cursor.fetchone()
+    cursor.execute("SELECT UserID FROM users WHERE Email = %s", (email,))
+    id = cursor.fetchone()
     
     if result is None:
       return make_response(jsonify({"error": "Invalid email or password"}), 401)
@@ -101,7 +106,12 @@ def login_user():
     stored_password_hash = result[0]
     
     if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
-      return jsonify({"message": "Login successful"}), 200
+      payload = {
+        "user_id": id,
+        "expiry": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).isoformat()
+      }
+      token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
+      return jsonify({"message": "Login successful", "token": token}), 200
     else:
       return make_response(jsonify({"error": "Invalid email or password"}), 401)
   
