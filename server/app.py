@@ -7,6 +7,7 @@ import bcrypt
 from flask_cors import CORS
 import jwt
 import datetime
+from functools import wraps
 
 # Create an instance of a Flask application
 app = Flask(__name__)
@@ -29,6 +30,41 @@ def get_db_connection():
     except Error as e:
         print(f"Error connecting to MySQL: {e}")
         return None
+
+# Decorator to make certain routes require a valid token
+def token_required(func):
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            # The header format is "Bearer <token>"
+            auth_header = request.headers['Authorization']
+            try:
+                token = auth_header.split(" ")[1]
+            except:
+                return make_response(jsonify({"error": "Token is in incorrect format!"}), 401)
+
+        # If the token is not found, return an error
+        if not token:
+            return make_response(jsonify({"error": "Token is missing!"}), 401)
+
+        # Try to decode the token to verify it
+        try:
+            # Verify the token using secret key
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            # Get the user's data from the token's payload
+            current_user_id = data['user_id']
+        except jwt.ExpiredSignatureError:
+            return make_response(jsonify({"error": "Token has expired!"}), 401)
+        except jwt.InvalidTokenError:
+            return make_response(jsonify({"error": "Token is invalid!"}), 401)
+        except jwt.DecodeError:
+            return make_response(jsonify({"error": "Token could not be decoded!"}), 401)
+
+        # If the token is valid, execute the original route function and pass the user's ID to it
+        return func(current_user_id, *args, **kwargs)
+
+    return decorated
 
 # Define an endpoint using a decorator
 @app.route('/api')
@@ -122,6 +158,26 @@ def login_user():
   finally:
     cursor.close()
     conn.close()    
+
+@app.route('/api/profile')
+@token_required
+def get_profile(current_user_id):
+    conn = get_db_connection()
+    if not conn:
+        return make_response(jsonify({"error": "Database connection failed"}), 500)
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT UserID, Username, Email, RegistrationTimestamp FROM users WHERE UserID = %s", (current_user_id[0],))
+        user = cursor.fetchone()
+        if not user:
+            return make_response(jsonify({"error": "User not found"}), 404)
+        return jsonify({"user": user}), 200
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"error": "Failed to fetch profile"}), 500)
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
   app.run(debug=True, port=5000)
