@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Login successful!');
                 messageContainer.textContent = data.message || 'Login successful!';
                 messageContainer.classList.add('success');
+                window.location.href = 'feed.html';
             } else {
                 const errorMsg = data.error || data.message || 'Login failed. Please try again.';
                 console.error('Login failed:', data.error);

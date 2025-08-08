@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Feed - Edem</title>
+    <style>
+        body { 
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding-top: 40px;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            border-bottom: 1px solid #dddfe2;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        button {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #e4e6eb;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #d8dbdf;
+        }
+        #profile-container {
+            margin-top: 20px;
+            background-color: #f7f7f7;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        pre {
+            white-space: pre-wrap;
+            font-family: "Courier New", Courier, monospace;
+        }
+        #error-container {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            color: #c01627;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="welcome-message">Loading...</h1>
+        
+        <div id="profile-container">
+            <h2>Your Profile Data:</h2>
+            <pre id="profile-data">Fetching data from server...</pre>
+        </div>
+
+        <div id="error-container" style="display: none;"></div>
+
+        <hr style="margin: 20px 0;">
+        <button id="logout-button">Log Out</button>
+    </div>
+
+    <script src="feed.js"></script>
+</body>
+</html>

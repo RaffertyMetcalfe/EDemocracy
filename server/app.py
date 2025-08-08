@@ -33,6 +33,7 @@ def get_db_connection():
 
 # Decorator to make certain routes require a valid token
 def token_required(func):
+    # https://docs.python.org/3/library/functools.html#functools.wraps
     @wraps(func)
     def decorated(*args, **kwargs):
         token = None
