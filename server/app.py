@@ -8,6 +8,7 @@ from flask_cors import CORS
 import jwt
 import datetime
 from functools import wraps
+import db_queries
 
 load_dotenv()
 
@@ -15,21 +16,6 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-
-def get_db_connection():
-    try:
-      port_num = int(os.getenv('DB_PORT'))
-      conn = mysql.connector.connect(
-          host=os.getenv('DB_HOST'),
-          port=port_num,
-          user=os.getenv('DB_USER'),
-          password=os.getenv('DB_PASSWORD'),
-          database=os.getenv('DB_NAME'),
-      )
-      return conn
-    except Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
 
 # Decorator to make certain routes require a valid token
 def token_required(func):
@@ -80,89 +66,54 @@ def register_user():
   username = data.get('username')
   email = data.get('email')
   password = data.get('password')
-  if not username:
-    return make_response(jsonify({"error": "Missing username"}), 400)
-  if not email:
-    return make_response(jsonify({"error": "Missing email"}), 400)
-  if not password:
-    return make_response(jsonify({"error": "Missing password"}), 400)
-  
+
+  if not all([username, email, password]):
+    return make_response(jsonify({"error": "Missing required fields"}), 400)
+
   password_bytes = password.encode('utf-8')
   hashed_password = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
-  
-  conn = get_db_connection()
-  if not conn:
-    return make_response(jsonify({"error": "Database connection failed"}), 500)
-  
-  cursor = conn.cursor()
+
   try:
-    cursor.execute("INSERT INTO users (Username, Email, PasswordHash) VALUES (%s, %s, %s)", (username, email, hashed_password))
-    conn.commit()
-    return jsonify({"message": "User registered successfully"}), 201
-  except mysql.connector.Error as err:
-    if err.errno == 1062:
-      print(f"Error: {err}")
-      cursor.execute("SELECT 1 FROM users WHERE Username = %s", (username,))
-      if cursor.fetchone():
-        return make_response(jsonify({"error": "Username already exists in the database"}), 409)
-      cursor.execute("SELECT 1 FROM users WHERE Email = %s", (email,))
-      if cursor.fetchone():
-        return make_response(jsonify({"error": "Email already exists in the database"}), 409)
+    if db_queries.create_user(username, email, hashed_password):
+      return jsonify({"message": "User registered successfully"}), 201
     else:
-      print(f"Error: {err}")
-      return make_response(jsonify({"error": f"Failed to register user: {err}"}), 500)
-  finally:
-    cursor.close()
-    conn.close()
+      return make_response(jsonify({"error": "An unknown error occurred"}), 500)
+  except mysql.connector.Error as err:
+    if err.errno == 1062: # Duplicate entry
+      return make_response(jsonify({"error": "Username or Email already exists"}), 409)
+    else:
+      return make_response(jsonify({"error": f"Database error: {err}"}), 500)
     
 @app.route('/api/users/login', methods=['POST'])
 def login_user():
   data = request.get_json()
   email = data.get('email')
   password = data.get('password')
-  
-  if not email:
-    return make_response(jsonify({"error": "Missing email"}), 400)
-  if not password:
-    return make_response(jsonify({"error": "Missing password"}), 400)
-  
-  conn = get_db_connection()
-  if not conn:
-    return make_response(jsonify({"error": "Database connection failed"}), 500)
-  
-  cursor = conn.cursor()
-  try:
-    cursor.execute("SELECT UserID, PasswordHash FROM users WHERE Email = %s", (email,))
-    user_record = cursor.fetchone() # This will be a tuple like (1, 'hashed_password_string')
 
-    if user_record is None:
-      return make_response(jsonify({"error": "Invalid email or password"}), 401)
+  if not email or not password:
+    return make_response(jsonify({"error": "Missing email or password"}), 400)
 
-    user_id = user_record[0]
-    stored_password_hash = user_record[1]
+  user_record = db_queries.find_user_by_email(email)
 
-    if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
-      payload = {
-        "user_id": user_id, 
+  if user_record is None:
+    return make_response(jsonify({"error": "Invalid email or password"}), 401)
+
+  user_id, stored_password_hash = user_record
+
+  if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
+    payload = {
+      "user_id": user_id,
         "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
-      }
-      token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
-      return jsonify({"message": "Login successful", "token": token}), 200
-    else:
-      return make_response(jsonify({"error": "Invalid email or password"}), 401)
-  
-  except mysql.connector.Error as err:
-    print(f"Error: {err}")
-    return make_response(jsonify({"error": f"Failed to login user: {err}"}), 500)
-  
-  finally:
-    cursor.close()
-    conn.close()    
+    }
+    token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
+    return jsonify({"message": "Login successful", "token": token}), 200
+  else:
+    return make_response(jsonify({"error": "Invalid email or password"}), 401)
 
 @app.route('/api/profile')
 @token_required
 def get_profile(current_user_id):
-    conn = get_db_connection()
+    conn = db_queries.get_db_connection()
     if not conn:
         return make_response(jsonify({"error": "Database connection failed"}), 500)
     cursor = conn.cursor(dictionary=True)
