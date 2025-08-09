@@ -9,12 +9,12 @@ import jwt
 import datetime
 from functools import wraps
 
+load_dotenv()
+
 # Create an instance of a Flask application
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-
-load_dotenv()
 
 def get_db_connection():
     try:
@@ -132,20 +132,19 @@ def login_user():
   
   cursor = conn.cursor()
   try:
-    cursor.execute("SELECT PasswordHash FROM users WHERE Email = %s", (email,))
-    result = cursor.fetchone()
-    cursor.execute("SELECT UserID FROM users WHERE Email = %s", (email,))
-    id = cursor.fetchone()
-    
-    if result is None:
+    cursor.execute("SELECT UserID, PasswordHash FROM users WHERE Email = %s", (email,))
+    user_record = cursor.fetchone() # This will be a tuple like (1, 'hashed_password_string')
+
+    if user_record is None:
       return make_response(jsonify({"error": "Invalid email or password"}), 401)
-    
-    stored_password_hash = result[0]
-    
+
+    user_id = user_record[0]
+    stored_password_hash = user_record[1]
+
     if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
       payload = {
-        "user_id": id,
-        "expiry": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).isoformat()
+        "user_id": user_id, 
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
       }
       token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
       return jsonify({"message": "Login successful", "token": token}), 200
@@ -168,7 +167,7 @@ def get_profile(current_user_id):
         return make_response(jsonify({"error": "Database connection failed"}), 500)
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT UserID, Username, Email, RegistrationTimestamp FROM users WHERE UserID = %s", (current_user_id[0],))
+        cursor.execute("SELECT UserID, Username, Email, RegistrationTimestamp FROM users WHERE UserID = %s", (current_user_id,))
         user = cursor.fetchone()
         if not user:
             return make_response(jsonify({"error": "User not found"}), 404)
