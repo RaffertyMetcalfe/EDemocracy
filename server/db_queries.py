@@ -29,6 +29,8 @@ def find_user_by_email(email):
         user_record = cursor.fetchone() # Fetches one record, e.g., (1, 'some_hash_string')
     except Error as e:
         print(f"Error in find_user_by_email: {e}")
+        if conn.is_connected():
+            conn.rollback()
     finally:
         if conn.is_connected():
             cursor.close()
@@ -48,6 +50,8 @@ def create_user(username, email, hashed_password):
         success = True
     except Error as e:
         print(f"Error in create_user: {e}")
+        if conn.is_connected():
+            conn.rollback()
     finally:
         if conn.is_connected():
             cursor.close()
@@ -71,3 +75,29 @@ def get_user_profile_by_id(user_id):
             cursor.close()
             conn.close()
     return user_profile
+
+def create_poll(user_id, question, options):
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    success = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title) VALUES (%s, %s, %s)", (user_id, "Poll",  question))
+        post_id = cursor.lastrowid
+        
+        for option in options:
+            cursor.execute("INSERT INTO PollOptions (PostID, OptionText) VALUES (%s, %s)", (post_id, option))
+        
+        conn.commit()
+        success = True
+    except Error as e:
+        print(f"Error in create_poll: {e}")
+        if conn.is_connected():
+            conn.rollback()
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return success

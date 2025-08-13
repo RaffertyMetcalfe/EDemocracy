@@ -113,22 +113,36 @@ def login_user():
 @app.route('/api/profile')
 @token_required
 def get_profile(current_user_id):
-    conn = db_queries.get_db_connection()
-    if not conn:
-        return make_response(jsonify({"error": "Database connection failed"}), 500)
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT UserID, Username, Email, RegistrationTimestamp FROM users WHERE UserID = %s", (current_user_id,))
-        user = cursor.fetchone()
-        if not user:
-            return make_response(jsonify({"error": "User not found"}), 404)
-        return jsonify({"user": user}), 200
-    except Error as e:
-        print(f"Error: {e}")
-        return make_response(jsonify({"error": "Failed to fetch profile"}), 500)
-    finally:
-        cursor.close()
-        conn.close()
+    user = db_queries.get_user_profile_by_id(current_user_id)
+    if not user:
+        return make_response(jsonify({"error": "User not found"}), 404)
+    return jsonify({"user": user}), 200
+        
+@app.route('/api/posts', methods=['POST'])
+@token_required
+def create_post(current_user_id):
+    data = request.get_json()
+    post_type = data.get('postType')
+    if post_type == 'Poll':
+        title = data.get('title')
+        options = data.get('options')
+
+        if not title or not options or not isinstance(options, list) or len(options) < 2:
+            return make_response(jsonify({"error": "A poll must have a title and at least two options."}), 400)
+
+        if db_queries.create_poll(current_user_id, title, options):
+            return jsonify({"message": "Poll created successfully"}), 201
+        else:
+            return make_response(jsonify({"error": "Failed to create poll"}), 500)
+    
+    # --- Future-proofing ---
+    # Later, other types like 'Announcement' will be added
+    # elif post_type == 'Announcement':
+    #     content = data.get('content')
+    #     # ... handle announcement creation ...
+    
+    else:
+        return make_response(jsonify({"error": "Invalid or missing 'postType'."}), 400)
 
 if __name__ == '__main__':
   app.run(debug=True, port=5000)
