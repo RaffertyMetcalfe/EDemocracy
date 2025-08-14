@@ -56,16 +56,41 @@
             background-color: #f8d7da;
             border: 1px solid #f5c6cb;
         }
+        .poll-card {
+            border: 1px solid #dddfe2;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            background-color: #ffffff;
+        }
+        .poll-title {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        .poll-meta {
+            font-size: 0.8rem;
+            color: #65676b;
+            margin-bottom: 15px;
+        }
+        .poll-options {
+            list-style-type: none;
+            padding: 0;
+        }
+        .poll-options li {
+            background-color: #f0f2f5;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1 id="welcome-message">Loading...</h1>
-        
-        <div id="profile-container">
-            <h2>Your Profile Data:</h2>
-            <pre id="profile-data">Fetching data from server...</pre>
+        <h1 id="title">Welcome to Edem!</h1>
+
+        <div id="feed-container">
+            <p>Loading your feed...</p>
         </div>
 
         <div id="error-container" style="display: none;"></div>

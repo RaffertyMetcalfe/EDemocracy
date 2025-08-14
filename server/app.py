@@ -143,6 +143,12 @@ def create_post(current_user_id):
     
     else:
         return make_response(jsonify({"error": "Invalid or missing 'postType'."}), 400)
+      
+@app.route('/api/feed', methods=['GET'])
+@token_required
+def get_feed(current_user_id):
+  feed_data = db_queries.collate_polls(current_user_id)
+  return jsonify(feed_data), 200
 
 if __name__ == '__main__':
   app.run(debug=True, port=5000)

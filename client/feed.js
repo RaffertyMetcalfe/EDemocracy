@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. Define DOM elements ---
-    const welcomeMessageElement = document.getElementById('welcome-message');
-    const profileDataElement = document.getElementById('profile-data');
+    const feedContainer = document.getElementById('feed-container');
     const logoutButton = document.getElementById('logout-button');
     const errorContainer = document.getElementById('error-container');
 
@@ -13,29 +12,61 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- 3. Fetch Protected Data from the Server ---
-    const fetchProfileData = async () => {
+    function createPollCard(poll) {
+        const card = document.createElement('div');
+        card.className = 'poll-card'; // Might add CSS for this class later
+
+        const title = document.createElement('h3');
+        title.className = 'poll-title';
+        title.textContent = poll.Title;
+
+        const meta = document.createElement('p');
+        meta.className = 'poll-meta';
+        // Use toLocaleString for a nicer date format
+        const date = new Date(poll.CreationTimestamp).toLocaleString();
+        meta.textContent = `Posted by ${poll.AuthorUsername} on ${date}`;
+
+        const optionsList = document.createElement('ul');
+        optionsList.className = 'poll-options';
+
+        poll.Options.forEach(option => {
+            const optionItem = document.createElement('li');
+            optionItem.textContent = `${option.OptionText} (${option.VoteCount} votes)`;
+            optionsList.appendChild(optionItem);
+        });
+
+        card.appendChild(title);
+        card.appendChild(meta);
+        card.appendChild(optionsList);
+
+        return card;
+}
+
+const fetchFeed = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/profile', {
+            const response = await fetch('http://localhost:5000/api/feed', {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            const data = await response.json();
+            const polls = await response.json();
 
             if (response.ok) {
-                const user = data.user;
-                welcomeMessageElement.textContent = `Welcome, ${user.Username}!`;
-                
-                profileDataElement.textContent = JSON.stringify(user, null, 2);
+                // Clear any previous content
+                feedContainer.innerHTML = ''; 
 
+                if (polls.length === 0) {
+                    feedContainer.textContent = 'No polls have been created yet.';
+                } else {
+                    // For each poll object, create a card and append it to the container
+                    polls.forEach(poll => {
+                        const pollCard = createPollCard(poll);
+                        feedContainer.appendChild(pollCard);
+                    });
+                }
             } else {
-                errorContainer.textContent = `Error: ${data.error || 'Could not fetch profile.'}`;
-                errorContainer.style.display = 'block';
-
-                // TODO: Log the user out if their token becomes invalid.I
+                // If token is invalid or another server error occurs
+                handleLogout(); // An invalid token means we should log out
             }
 
         } catch (error) {
@@ -45,14 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // --- 4. Logout Functionality ---
+    // --- 5. Logout Functionality ---
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         window.location.href = 'login.html';
     };
 
-    // --- 5. Attach Event Listeners and Execute ---
+    // --- 6. Attach Event Listeners and Execute ---
     logoutButton.addEventListener('click', handleLogout);
-    fetchProfileData();
+    fetchFeed(); // Initial call to load the feed
 
 });
