@@ -159,3 +159,25 @@ def collate_polls(user_id):
             conn.close()
             
     return list(polls.values())
+
+def record_poll_vote(user_id, post_id, option_id):
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    success = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Votes (UserID, PostID, OptionID) VALUES (%s, %s, %s)", (user_id, post_id, option_id))
+        cursor.execute("UPDATE PollOptions SET VoteCount = VoteCount + 1 WHERE OptionID = %s", (option_id,))
+        conn.commit()
+        success = True
+    except Error as e:
+        print(f"Error in record_vote: {e}")
+        if conn.is_connected():
+            conn.rollback()
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return success

@@ -150,5 +150,20 @@ def get_feed(current_user_id):
   feed_data = db_queries.collate_polls(current_user_id)
   return jsonify(feed_data), 200
 
+@app.route('/api/votes', methods=['POST'])
+@token_required
+def cast_vote(current_user_id):
+    data = request.get_json()
+    post_id = data.get('PostId')
+    option_id = data.get('OptionId')
+
+    if not post_id or not option_id:
+        return make_response(jsonify({"error": "Missing PostId or OptionId"}), 400)
+
+    if db_queries.record_vote(current_user_id, post_id, option_id):
+        return jsonify({"message": "Vote cast successfully"}), 202
+    else:
+        return make_response(jsonify({"error": "Failed to cast vote"}), 500)
+
 if __name__ == '__main__':
   app.run(debug=True, port=5000)

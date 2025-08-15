@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createPollCard(poll) {
         const card = document.createElement('div');
-        card.className = 'poll-card'; // Might add CSS for this class later
+        card.className = 'poll-card';
+        card.dataset.postId = poll.PostId;
 
         const title = document.createElement('h3');
         title.className = 'poll-title';
@@ -26,18 +27,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date(poll.CreationTimestamp).toLocaleString();
         meta.textContent = `Posted by ${poll.AuthorUsername} on ${date}`;
 
-        const optionsList = document.createElement('ul');
-        optionsList.className = 'poll-options';
+        const form = document.createElement('form');
+        form.className = 'poll-options';
 
         poll.Options.forEach(option => {
-            const optionItem = document.createElement('li');
-            optionItem.textContent = `${option.OptionText} (${option.VoteCount} votes)`;
-            optionsList.appendChild(optionItem);
+            // Create a container for each option line
+            const optionContainer = document.createElement('div');
+            optionContainer.className = 'option-container';
+
+            // Create the radio button input
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = `poll-${poll.PostID}`; // Groups radio buttons for one poll
+            radioInput.value = option.OptionID;      // The value to be sent to the server
+            radioInput.id = `option-${option.OptionID}`; // Unique ID for the label to point to
+
+            // Create the label for the radio button
+            const label = document.createElement('label');
+            label.htmlFor = `option-${option.OptionID}`;
+            label.textContent = option.OptionText;
+
+            // Create a span to show the vote count
+            const voteCount = document.createElement('span');
+            voteCount.className = 'vote-count';
+            voteCount.textContent = `(${option.VoteCount} votes)`;
+
+            // Append the input, label, and vote count to their container
+            optionContainer.appendChild(radioInput);
+            optionContainer.appendChild(label);
+            optionContainer.appendChild(voteCount);
+            
+            // Add the whole option line to the form
+            form.appendChild(optionContainer);
         });
+        const submitButton = document.createElement('button');
+        submitButton.type = 'submit';
+        submitButton.textContent = 'Submit Vote';
+        submitButton.className = 'vote-button';
+
+        const voteMessage = document.createElement('div');
+        voteMessage.className = 'vote-message';
+
+        form.appendChild(submitButton);
+        form.appendChild(voteMessage);
+
+        if (poll.userHasVoted) {
+        form.querySelectorAll('input[type="radio"]').forEach(input => {
+            input.disabled = true;
+        });
+        submitButton.disabled = true;
+        submitButton.textContent = 'Voted!';
+    }
 
         card.appendChild(title);
         card.appendChild(meta);
-        card.appendChild(optionsList);
+        card.appendChild(form);
 
         return card;
 }

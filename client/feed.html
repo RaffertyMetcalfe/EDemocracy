@@ -72,16 +72,57 @@
             color: #65676b;
             margin-bottom: 15px;
         }
-        .poll-options {
-            list-style-type: none;
-            padding: 0;
+        .poll-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         }
-        .poll-options li {
+
+        .option-container {
+            display: flex;
+            align-items: center;
             background-color: #f0f2f5;
             padding: 10px;
             border-radius: 6px;
-            margin-bottom: 8px;
         }
+
+        .option-container input[type="radio"] {
+            margin-right: 10px;
+            transform: scale(1.2); 
+        }
+
+        .option-container label {
+            flex-grow: 1;
+            cursor: pointer;
+        }
+
+        .vote-count {
+            font-size: 0.9em;
+            color: #65676b;
+        }
+
+        .vote-button {
+            align-self: flex-start;
+            margin-top: 10px;
+            background-color: #1877f2;
+            color: white;
+            font-weight: bold;
+        }
+
+        .vote-button:hover {
+            background-color: #166fe5;
+        }   
+
+        .vote-button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+        .vote-message {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
     </style>
 </head>
 <body>
