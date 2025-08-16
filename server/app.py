@@ -1,13 +1,19 @@
 import os
+# Flask: https://flask.palletsprojects.com/
 from flask import Flask, jsonify, request, make_response
+# python-dotenv: https://pypi.org/project/python-dotenv/
 from dotenv import load_dotenv
+# mysql-connector-python: https://dev.mysql.com/doc/connector-python/en/
 import mysql.connector
-from mysql.connector import Error
+# bcrypt: https://pypi.org/project/bcrypt/
 import bcrypt
+# Flask-CORS: https://flask-cors.readthedocs.io/
 from flask_cors import CORS
+# PyJWT: https://pyjwt.readthedocs.io/
 import jwt
 import datetime
 from functools import wraps
+# (local module)
 import db_queries
 
 load_dotenv()
@@ -150,7 +156,7 @@ def get_feed(current_user_id):
   feed_data = db_queries.collate_polls(current_user_id)
   return jsonify(feed_data), 200
 
-@app.route('/api/votes', methods=['POST'])
+@app.route('/api/vote', methods=['POST'])
 @token_required
 def cast_vote(current_user_id):
     data = request.get_json()
@@ -160,7 +166,7 @@ def cast_vote(current_user_id):
     if not post_id or not option_id:
         return make_response(jsonify({"error": "Missing PostId or OptionId"}), 400)
 
-    if db_queries.record_vote(current_user_id, post_id, option_id):
+    if db_queries.record_poll_vote(current_user_id, post_id, option_id):
         return jsonify({"message": "Vote cast successfully"}), 202
     else:
         return make_response(jsonify({"error": "Failed to cast vote"}), 500)

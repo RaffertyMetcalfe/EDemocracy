@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createPollCard(poll) {
         const card = document.createElement('div');
         card.className = 'poll-card';
-        card.dataset.postId = poll.PostId;
+        card.dataset.postId = poll.PostID;
 
         const title = document.createElement('h3');
         title.className = 'poll-title';
@@ -84,42 +84,86 @@ document.addEventListener('DOMContentLoaded', () => {
         card.appendChild(form);
 
         return card;
-}
+    }
 
-const fetchFeed = async () => {
-        try {
-            const response = await fetch('http://localhost:5000/api/feed', {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+    const fetchFeed = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/feed', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-            const polls = await response.json();
+                const polls = await response.json();
 
-            if (response.ok) {
-                // Clear any previous content
-                feedContainer.innerHTML = ''; 
+                if (response.ok) {
+                    // Clear any previous content
+                    feedContainer.innerHTML = ''; 
 
-                if (polls.length === 0) {
-                    feedContainer.textContent = 'No polls have been created yet.';
+                    if (polls.length === 0) {
+                        feedContainer.textContent = 'No polls have been created yet.';
+                    } else {
+                        // For each poll object, create a card and append it to the container
+                        polls.forEach(poll => {
+                            const pollCard = createPollCard(poll);
+                            feedContainer.appendChild(pollCard);
+                        });
+                    }
                 } else {
-                    // For each poll object, create a card and append it to the container
-                    polls.forEach(poll => {
-                        const pollCard = createPollCard(poll);
-                        feedContainer.appendChild(pollCard);
-                    });
+                    // If token is invalid or another server error occurs
+                    handleLogout(); // An invalid token means we should log out
                 }
-            } else {
-                // If token is invalid or another server error occurs
-                handleLogout(); // An invalid token means we should log out
-            }
 
         } catch (error) {
             console.error('Network or fetch error:', error);
             errorContainer.textContent = 'Could not connect to the server. Please try again later.';
             errorContainer.style.display = 'block';
-        }
+    }
     };
-    
+
+    feedContainer.addEventListener("submit", async e => {
+    if(e.target && e.target.classList.contains("poll-options")){
+        e.preventDefault();
+
+        const form = e.target;
+        const selectedOption = form.querySelector("input[type='radio']:checked");
+        const postId = form.closest(".poll-card").dataset.postId;
+        const voteMessage = form.querySelector(".vote-message");
+
+        if(!selectedOption){
+            voteMessage.textContent = "Please select an option before voting.";
+            return;
+        }
+
+        try {
+            const response = await fetch("http://localhost:5000/api/vote", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    PostId: postId,
+                    OptionId: selectedOption.value
+                })
+            });
+
+            if(response.ok){
+                voteMessage.textContent = "Vote submitted successfully!";
+                // Disable further voting on this poll
+                form.querySelectorAll("input[type='radio']").forEach(input => input.disabled = true);
+                form.querySelector(".vote-button").disabled = true;
+                form.querySelector(".vote-button").textContent = "Voted!";
+            } else {
+                const err = await response.json();
+                voteMessage.textContent = err.message || "Failed to submit vote.";
+            }
+        } catch(err){
+            console.error("Vote error:", err);
+            voteMessage.textContent = "Could not submit vote. Try again later.";
+        }
+    }
+});
+        
     // --- 5. Logout Functionality ---
     const handleLogout = () => {
         localStorage.removeItem('authToken');
@@ -129,5 +173,4 @@ const fetchFeed = async () => {
     // --- 6. Attach Event Listeners and Execute ---
     logoutButton.addEventListener('click', handleLogout);
     fetchFeed(); // Initial call to load the feed
-
 });
