@@ -109,7 +109,7 @@ def login_user():
   if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
     payload = {
       "user_id": user_id,
-        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
+      "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
     }
     token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({"message": "Login successful", "token": token}), 200
@@ -140,6 +140,14 @@ def create_post(current_user_id):
             return jsonify({"message": "Poll created successfully"}), 201
         else:
             return make_response(jsonify({"error": "Failed to create poll"}), 500)
+    elif post_type == 'Announcement':
+      title = data.get('title')
+      content = data.get('content')
+      if not content:
+        return make_response(jsonify({"error": "Announcement content is required."}), 400)
+
+      db_queries.create_announcement(current_user_id, title, content)
+      return jsonify({"message": "Announcement created successfully"}), 201
     
     # --- Future-proofing ---
     # Later, other types like 'Announcement' will be added
@@ -153,7 +161,7 @@ def create_post(current_user_id):
 @app.route('/api/feed', methods=['GET'])
 @token_required
 def get_feed(current_user_id):
-  feed_data = db_queries.collate_polls(current_user_id)
+  feed_data = db_queries.get_feed_posts(current_user_id)
   return jsonify(feed_data), 200
 
 @app.route('/api/vote', methods=['POST'])
