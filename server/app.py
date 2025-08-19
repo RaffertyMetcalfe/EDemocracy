@@ -148,12 +148,11 @@ def create_post(current_user_id):
 
       db_queries.create_announcement(current_user_id, title, content)
       return jsonify({"message": "Announcement created successfully"}), 201
-    
-    # --- Future-proofing ---
-    # Later, other types like 'Announcement' will be added
-    # elif post_type == 'Announcement':
-    #     content = data.get('content')
-    #     # ... handle announcement creation ...
+    elif post_type == 'ForumTopic':
+        title = data.get('title')
+        content = data.get('content') | None
+        db_queries.create_forum_topic(current_user_id, title, content)
+        return jsonify({"message": "Forum topic created successfully"}), 201
     
     else:
         return make_response(jsonify({"error": "Invalid or missing 'postType'."}), 400)

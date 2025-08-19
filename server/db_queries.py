@@ -117,6 +117,7 @@ def get_feed_posts(user_id):
                 p.Title,
                 p.CreationTimestamp,
                 p.Content,
+                p.PostType,
                 u.Username AS AuthorUsername,
                 po.OptionID,
                 po.OptionText,
@@ -140,6 +141,7 @@ def get_feed_posts(user_id):
                     "PostID": post_id,
                     "Title": row['Title'],
                     "Content": row.get('Content', ''),  # Content may not be present for Polls
+                    "PostType": row['PostType'],
                     "CreationTimestamp": row['CreationTimestamp'],
                     "AuthorUsername": row['AuthorUsername'],
                     "Options": [],
@@ -193,6 +195,25 @@ def create_announcement(user_id, title, content):
         success = True
     except Error as e:
         print(f"Error in create_announcement: {e}")
+        if conn.is_connected():
+            conn.rollback()
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return success
+
+# Full functionality will be added with forum sub-project later
+def create_forum_topic(user_id, title, content):
+    conn = get_db_connection()
+    success = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, Content) VALUES (%s, %s, %s, %s)", (user_id, "ForumTopic", title, content))
+        conn.commit()
+        success = True
+    except Error as e:
+        print(f"Error in create_forum_topic: {e}")
         if conn.is_connected():
             conn.rollback()
     finally:
