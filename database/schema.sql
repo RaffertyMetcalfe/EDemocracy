@@ -10,7 +10,7 @@ CREATE TABLE Users (
 CREATE TABLE Posts (
     PostID INT AUTO_INCREMENT PRIMARY KEY,
     AuthorUserID INT NOT NULL,
-    PostType ENUM('Announcement', 'Poll', 'Discussion', 'VoteItem') NOT NULL,
+    PostType ENUM('Announcement', 'Poll', 'Discussion', 'VoteItem', 'ForumTopic') NOT NULL,
     Title VARCHAR(255) NOT NULL,
     Content TEXT,
     CreationTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -25,7 +25,7 @@ CREATE TABLE PollOptions (
     FOREIGN KEY (PostID) REFERENCES Posts(PostID) ON DELETE CASCADE
 );
 
-CREATE TABLE Votes (
+CREATE TABLE PollVotes (
     VoteID INT AUTO_INCREMENT PRIMARY KEY,
     UserID INT NOT NULL,
     PostID INT NOT NULL,
@@ -35,4 +35,15 @@ CREATE TABLE Votes (
     FOREIGN KEY (PostID) REFERENCES Posts(PostID) ON DELETE CASCADE,
     FOREIGN KEY (OptionID) REFERENCES PollOptions(OptionID) ON DELETE CASCADE,
     UNIQUE KEY user_vote_per_poll (UserID, PostID) -- This prevents a user from voting twice on the same poll
+);
+
+CREATE TABLE ItemVotes (
+    VoteID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT NOT NULL,
+    PostID INT NOT NULL,
+    VoteType ENUM('For', 'Against', 'Abstain') NOT NULL,
+    Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    FOREIGN KEY (PostID) REFERENCES Posts(PostID) ON DELETE CASCADE,
+    UNIQUE KEY user_vote_per_item (UserID, PostID)
 );

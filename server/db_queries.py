@@ -1,5 +1,7 @@
 import os
 import mysql.connector
+import jwt
+import datetime
 from mysql.connector import Error
 
 def get_db_connection():
@@ -130,13 +132,22 @@ def get_feed_posts(user_id):
         cursor.execute(query)
         all_post_rows = cursor.fetchall()
         
-        cursor.execute("SELECT PostID FROM Votes WHERE UserID = %s", (user_id,))
+        cursor.execute("SELECT PostID FROM PollVotes WHERE UserID = %s", (user_id,))
         # Results go into a set for fast af lookups
-        user_voted_posts = {row['PostID'] for row in cursor.fetchall()}
+        user_voted_polls = {row['PostID'] for row in cursor.fetchall()}
+        
+        cursor.execute("SELECT PostID FROM ItemVotes WHERE UserID = %s", (user_id,))
+        user_voted_items = {row['PostID'] for row in cursor.fetchall()}
         
         for row in all_post_rows:
             post_id = row['PostID']
+            
             if post_id not in posts:
+                has_voted = False
+                if row['PostType'] == 'Poll':
+                    has_voted = post_id in user_voted_polls
+                elif row['PostType'] == 'VoteItem':
+                    has_voted = post_id in user_voted_items
                 posts[post_id] = {
                     "PostID": post_id,
                     "Title": row['Title'],
@@ -145,8 +156,22 @@ def get_feed_posts(user_id):
                     "CreationTimestamp": row['CreationTimestamp'],
                     "AuthorUsername": row['AuthorUsername'],
                     "Options": [],
-                    "userHasVoted": post_id in user_voted_posts
+                    "userHasVoted": has_voted,
+                    "priority": False  # Default priority to False
                 }
+            # If the current row is for a VoteItem and the user has NOT voted on it yet...
+            if row['PostType'] == 'VoteItem' and not posts[post_id]['userHasVoted']:
+                vote_token_payload = {
+                    'user_id': user_id,
+                    'post_id': post_id,
+                    'purpose': 'item_vote',
+                    'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5) # Token is only valid for 5 mins
+                }
+                secret_key = os.getenv('SECRET_KEY')
+                vote_auth_token = jwt.encode(vote_token_payload, secret_key, algorithm="HS256")
+                posts[post_id]['voteAuthToken'] = vote_auth_token
+                posts[post_id]['priority'] = True
+                
             if row['OptionID'] is not None:
                 posts[post_id]["Options"].append({
                     "OptionID": row['OptionID'],
@@ -171,7 +196,7 @@ def record_poll_vote(user_id, post_id, option_id):
     success = False
     try:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Votes (UserID, PostID, OptionID) VALUES (%s, %s, %s)", (user_id, post_id, option_id))
+        cursor.execute("INSERT INTO PollVotes (UserID, PostID, OptionID) VALUES (%s, %s, %s)", (user_id, post_id, option_id))
         cursor.execute("UPDATE PollOptions SET VoteCount = VoteCount + 1 WHERE OptionID = %s", (option_id,))
         conn.commit()
         success = True

@@ -150,7 +150,7 @@ def create_post(current_user_id):
       return jsonify({"message": "Announcement created successfully"}), 201
     elif post_type == 'ForumTopic':
         title = data.get('title')
-        content = data.get('content') | None
+        content = data.get('content') if data.get('content') else ''
         db_queries.create_forum_topic(current_user_id, title, content)
         return jsonify({"message": "Forum topic created successfully"}), 201
     
