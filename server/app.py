@@ -140,20 +140,27 @@ def create_post(current_user_id):
             return jsonify({"message": "Poll created successfully"}), 201
         else:
             return make_response(jsonify({"error": "Failed to create poll"}), 500)
+          
     elif post_type == 'Announcement':
       title = data.get('title')
       content = data.get('content')
       if not content:
         return make_response(jsonify({"error": "Announcement content is required."}), 400)
-
       db_queries.create_announcement(current_user_id, title, content)
       return jsonify({"message": "Announcement created successfully"}), 201
+    
     elif post_type == 'ForumTopic':
         title = data.get('title')
         content = data.get('content') if data.get('content') else ''
         db_queries.create_forum_topic(current_user_id, title, content)
         return jsonify({"message": "Forum topic created successfully"}), 201
-    
+      
+    elif post_type == 'VoteItem':
+      title = data.get('title')
+      if db_queries.create_vote_item(current_user_id, title):
+        return jsonify({"message": "Vote item created successfully"}), 201
+      else:
+        return make_response(jsonify({"error": "Failed to create vote item"}), 500)
     else:
         return make_response(jsonify({"error": "Invalid or missing 'postType'."}), 400)
       
@@ -177,6 +184,40 @@ def cast_vote(current_user_id):
         return jsonify({"message": "Vote cast successfully"}), 202
     else:
         return make_response(jsonify({"error": "Failed to cast vote"}), 500)
+
+@app.route('api/item-votes', methods=['POST'])
+@token_required
+def cast_item_vote(current_user_id):
+  data = request.get_json()
+  post_id = data.get('PostId')
+  choice = data.get('Choice')
+  auth_token = data.get('AuthToken')
+  
+  if not post_id or not choice or not auth_token:
+    return make_response(jsonify({"error": "Missing PostId, Choice, or AuthToken"}), 400)
+  try:
+    # Decode the JWT token to validate it
+    decoded_token = jwt.decode(auth_token, app.config['SECRET_KEY'], algorithms=["HS256"])
+    
+    # Check if the user_id matches the current_user_id
+    if decoded_token['user_id'] != current_user_id:
+      return make_response(jsonify({"error": "Invalid user ID in token"}), 403)
+    
+    # Check if the post_id matches
+    if decoded_token['post_id'] != post_id:
+      return make_response(jsonify({"error": "Post ID mismatch"}), 403)
+    
+    # Check if the purpose is 'item_vote'
+    if decoded_token['purpose'] != 'item_vote':
+      return make_response(jsonify({"error": "Invalid token purpose"}), 403)
+
+    # Record the item vote
+    if db_queries.record_item_vote(current_user_id, post_id, choice):
+      return jsonify({"message": "Vote recorded successfully"}), 202
+    else:
+      return make_response(jsonify({"error": "Failed to record vote"}), 500)
+  except jwt.ExpiredSignatureError:
+    return make_response(jsonify({"error": "Vote token has expired"}), 401)
 
 if __name__ == '__main__':
   app.run(debug=True, port=5000)

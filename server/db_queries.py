@@ -246,3 +246,46 @@ def create_forum_topic(user_id, title, content):
             cursor.close()
             conn.close()
     return success
+
+
+def create_vote_item(user_id, title):
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    success = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title) VALUES (%s, %s, %s)", (user_id, "VoteItem", title))
+        conn.commit()
+        success = True
+    except Error as e:
+        print(f"Error in create_vote_item: {e}")
+        if conn.is_connected():
+            conn.rollback()
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return success
+
+def record_item_vote(user_id, post_id, choice):
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    success = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO ItemVotes (UserID, PostID, OptionID) VALUES (%s, %s, %s)", (user_id, post_id, choice))
+        conn.commit()
+        success = True
+    except Error as e:
+        print(f"Error in record_item_vote: {e}")
+        if conn.is_connected():
+            conn.rollback()
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return success
