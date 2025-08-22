@@ -36,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
             content.appendChild(createAnnouncementContent(post));
         } else if (post.PostType === "ForumTopic") {
             content.appendChild(createTopicContent(post));
+        } else if (post.PostType === "ItemVote") {
+            content.appendChild(createItemVoteContent(post));
         }
 
         card.appendChild(title);
@@ -45,17 +47,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return card;
     }
 
-    function createPollContent(poll) {
+    function createPollContent(post) {
         const form = document.createElement('form');
         form.className = 'poll-options';
 
-        poll.Options.forEach(option => {
+        post.Options.forEach(option => {
             const optionContainer = document.createElement('div');
             optionContainer.className = 'option-container';
 
             const radioInput = document.createElement('input');
             radioInput.type = 'radio';
-            radioInput.name = `poll-${poll.PostID}`;
+            radioInput.name = `poll-${post.PostID}`;
             radioInput.value = option.OptionID;
             radioInput.id = `option-${option.OptionID}`;
 
@@ -75,9 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
-        submitButton.textContent = poll.userHasVoted ? 'Voted!' : 'Submit Vote';
+        submitButton.textContent = post.userHasVoted ? 'Voted!' : 'Submit Vote';
         submitButton.className = 'vote-button';
-        if (poll.userHasVoted) submitButton.disabled = true;
+        if (post.userHasVoted) submitButton.disabled = true;
 
         const voteMessage = document.createElement('div');
         voteMessage.className = 'vote-message';
@@ -85,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.appendChild(submitButton);
         form.appendChild(voteMessage);
 
-        if (poll.userHasVoted) {
+        if (post.userHasVoted) {
             form.querySelectorAll('input[type="radio"]').forEach(input => input.disabled = true);
         }
 
@@ -106,6 +108,65 @@ document.addEventListener('DOMContentLoaded', () => {
         // Forum will be implemented later
         return content;
     }
+
+    function createItemVoteContent(post) {
+        const form = document.createElement('form');
+        form.className = 'item-vote-options'; 
+
+        if (post.voteAuthToken) {
+            form.dataset.voteAuthToken = post.voteAuthToken;
+        }
+
+        const contentText = document.createElement('p');
+        contentText.textContent = post.Content;
+        form.appendChild(contentText);
+
+        const voteTypes = ['For', 'Against', 'Abstain'];
+        voteTypes.forEach(voteType => {
+            const optionContainer = document.createElement('div');
+            optionContainer.className = 'option-container';
+
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = `item-vote-${post.PostID}`;
+            radioInput.value = voteType;
+            radioInput.id = `item-vote-${post.PostID}-${voteType}`;
+
+            const label = document.createElement('label');
+            label.htmlFor = radioInput.id;
+            
+            const voteCount = post.VoteCounts ? (post.VoteCounts[voteType] || 0) : 0;
+            label.textContent = `${voteType} (${voteCount} votes)`;
+
+            optionContainer.appendChild(radioInput);
+            optionContainer.appendChild(label);
+            form.appendChild(optionContainer);
+        });
+
+        const submitButton = document.createElement('button');
+        submitButton.type = 'submit';
+        submitButton.textContent = 'Submit Final Vote';
+        submitButton.className = 'vote-button';
+
+        const voteMessage = document.createElement('div');
+        voteMessage.className = 'vote-message';
+
+        form.appendChild(submitButton);
+        form.appendChild(voteMessage);
+
+        if (post.userHasVoted) {
+            form.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.disabled = true;
+                if (input.value === post.userVoteType) {
+                    input.checked = true;
+                }
+            });
+            submitButton.disabled = true;
+            submitButton.textContent = 'Voted!';
+        }
+        return form;
+    }
+
     const fetchFeed = async () => {
         try {
             const response = await fetch('http://localhost:5000/api/feed', {
@@ -131,27 +192,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleLogout();
             }
 
-        } catch (error) {
-            console.error('Network or fetch error:', error);
-            errorContainer.textContent = 'Could not connect to the server. Please try again later.';
-            errorContainer.style.display = 'block';
-        }
-    };
-
-    feedContainer.addEventListener("submit", async e => {
-        if(e.target && e.target.classList.contains("poll-options")){
-            e.preventDefault();
-
-            const form = e.target;
-            const selectedOption = form.querySelector("input[type='radio']:checked");
-            const postId = form.closest(".post-card").dataset.postId;
-            const voteMessage = form.querySelector(".vote-message");
-
-            if(!selectedOption){
-                voteMessage.textContent = "Please select an option before voting.";
-                return;
+            } catch (error) {
+                console.error('Network or fetch error:', error);
+                errorContainer.textContent = 'Could not connect to the server. Please try again later.';
+                errorContainer.style.display = 'block';
             }
+        };    
 
+        feedContainer.addEventListener("submit", async e => {
+        e.preventDefault();
+
+        const form = e.target;
+        const card = form.closest(".post-card");
+        const selectedOption = form.querySelector("input[type='radio']:checked");
+        const postId = card.dataset.postId;
+        const voteMessage = form.querySelector(".vote-message");
+
+        if(!selectedOption){
+            voteMessage.textContent = "Please select an option before voting.";
+            return;
+        }
+        if (form.classList.contains("poll-options")) {
             try {
                 const response = await fetch("http://localhost:5000/api/vote", {
                     method: "POST",
@@ -179,9 +240,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Vote error:", err);
                 voteMessage.textContent = "Could not submit vote. Try again later.";
             }
+        } else if (form.classList.contains("item-vote-options")) {
+            const voteAuthToken = form.dataset.voteAuthToken;
+            if (!voteAuthToken) {
+                voteMessage.textContent = "Cannot vote: missing authorization token.";
+                return;
+            }
+            try {
+                const response = await fetch("http://localhost:5000/api/item-vote", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify({
+                        PostId: postId,
+                        VoteType: selectedOption.value,
+                        VoteAuthToken: voteAuthToken
+                    })
+                });
+                if (response.ok) {
+                    voteMessage.textContent = "Final vote recorded!";
+                    form.querySelectorAll("input, button").forEach(el => el.disabled = true);
+                    form.querySelector(".vote-button").textContent = "Voted!";
+                } else {
+                    const err = await response.json();
+                    voteMessage.textContent = err.error || "Failed to record vote.";
+                }
+            } catch (err) {
+                console.error("Item vote error:", err);
+                voteMessage.textContent = "Could not record vote.";
+            }
         }
     });
-        
+            
     // --- 5. Logout Functionality ---
     const handleLogout = () => {
         localStorage.removeItem('authToken');
