@@ -185,7 +185,7 @@ def cast_vote(current_user_id):
     else:
         return make_response(jsonify({"error": "Failed to cast vote"}), 500)
 
-@app.route('api/item-votes', methods=['POST'])
+@app.route('/api/item-votes', methods=['POST'])
 @token_required
 def cast_item_vote(current_user_id):
   data = request.get_json()

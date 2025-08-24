@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin: Create Post</title>
+</head>
+<body>
+
+    <h1>Create a New Post</h1>
+    <hr>
+
+    <form id="create-post-form">
+        
+        <label for="post-type-select">Select Post Type:</label><br>
+        <select id="post-type-select" name="postType">
+            <option value="">--Please choose an option--</option>
+            <option value="Announcement">Announcement</option>
+            <option value="Poll">Poll</option>
+            <option value="ForumTopic">Forum Topic</option>
+            <option value="VoteItem">Vote Item</option>
+        </select>
+        
+        <br><br>
+
+        <label for="post-title">Title:</label><br>
+        <input type="text" id="post-title" name="title" size="50" required>
+        
+        <br><br>
+
+        <div id="content-section" style="display: none;">
+            <label for="post-content">Content/Description:</label><br>
+            <textarea id="post-content" name="content" rows="8" cols="50"></textarea>
+        </div>
+
+        <div id="poll-options-section" style="display: none;">
+            <label>Poll Options:</label><br>
+            <div id="poll-options-container">
+            </div>
+            <br>
+            <button type="button" id="add-option-btn">Add Another Option</button>
+        </div>
+
+        <br><br>
+        <hr>
+
+        <button type="submit">Create Post</button>
+    </form>
+
+    <div id="message-container" style="margin-top: 20px; font-weight: bold;"></div>
+
+    <script src="create.js"></script>
+</body>
+</html>
