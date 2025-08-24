@@ -189,35 +189,40 @@ def cast_vote(current_user_id):
 @token_required
 def cast_item_vote(current_user_id):
   data = request.get_json()
-  post_id = data.get('PostId')
+  post_id_str = data.get('PostId')
   choice = data.get('Choice')
   auth_token = data.get('AuthToken')
   
-  if not post_id or not choice or not auth_token:
+  if not all([post_id_str, choice, auth_token]):
     return make_response(jsonify({"error": "Missing PostId, Choice, or AuthToken"}), 400)
+  
   try:
-    # Decode the JWT token to validate it
+    post_id = int(post_id_str)
     decoded_token = jwt.decode(auth_token, app.config['SECRET_KEY'], algorithms=["HS256"])
     
-    # Check if the user_id matches the current_user_id
     if decoded_token['user_id'] != current_user_id:
       return make_response(jsonify({"error": "Invalid user ID in token"}), 403)
     
-    # Check if the post_id matches
     if decoded_token['post_id'] != post_id:
       return make_response(jsonify({"error": "Post ID mismatch"}), 403)
     
-    # Check if the purpose is 'item_vote'
     if decoded_token['purpose'] != 'item_vote':
       return make_response(jsonify({"error": "Invalid token purpose"}), 403)
 
-    # Record the item vote
     if db_queries.record_item_vote(current_user_id, post_id, choice):
       return jsonify({"message": "Vote recorded successfully"}), 202
     else:
       return make_response(jsonify({"error": "Failed to record vote"}), 500)
+      
   except jwt.ExpiredSignatureError:
     return make_response(jsonify({"error": "Vote token has expired"}), 401)
+  except jwt.InvalidTokenError:
+      return make_response(jsonify({"error": "Vote token is invalid"}), 401)
+  except ValueError:
+    return make_response(jsonify({"error": "Invalid PostId format"}), 400)
+  except Exception as e:
+    print(f"An unexpected error occurred in cast_item_vote: {e}")
+    return make_response(jsonify({"error": "An internal server error occurred"}), 500)
 
 if __name__ == '__main__':
   app.run(debug=True, port=5000)

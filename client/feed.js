@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
             content.appendChild(createAnnouncementContent(post));
         } else if (post.PostType === "ForumTopic") {
             content.appendChild(createTopicContent(post));
-        } else if (post.PostType === "ItemVote") {
+        } else if (post.PostType === "VoteItem") {
             content.appendChild(createItemVoteContent(post));
         }
 
@@ -247,13 +247,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             try {
-                const response = await fetch("http://localhost:5000/api/item-vote", {
+                const response = await fetch("http://localhost:5000/api/item-votes", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                     body: JSON.stringify({
                         PostId: postId,
-                        VoteType: selectedOption.value,
-                        VoteAuthToken: voteAuthToken
+                        Choice: selectedOption.value,
+                        AuthToken: voteAuthToken
                     })
                 });
                 if (response.ok) {

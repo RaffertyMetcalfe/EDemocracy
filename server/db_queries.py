@@ -277,7 +277,7 @@ def record_item_vote(user_id, post_id, choice):
     success = False
     try:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO ItemVotes (UserID, PostID, OptionID) VALUES (%s, %s, %s)", (user_id, post_id, choice))
+        cursor.execute("INSERT INTO ItemVotes (UserID, PostID, VoteType) VALUES (%s, %s, %s)", (user_id, post_id, choice))
         conn.commit()
         success = True
     except Error as e:
