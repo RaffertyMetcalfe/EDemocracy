@@ -224,5 +224,36 @@ def cast_item_vote(current_user_id):
     print(f"An unexpected error occurred in cast_item_vote: {e}")
     return make_response(jsonify({"error": "An internal server error occurred"}), 500)
 
+@app.route('/api/comments', methods=['POST'])
+@token_required
+def post_comment(current_user_id):
+    data = request.get_json()
+    post_id = data.get('postId')
+    content = data.get('content')
+    
+    if not post_id or not content:
+        return make_response(jsonify({"error": "Missing data"}), 400)
+
+    if db_queries.create_comment(current_user_id, post_id, content):
+        return jsonify({"message": "Comment added"}), 201
+    else:
+        return make_response(jsonify({"error": "Failed"}), 500)
+
+@app.route('/api/posts/<int:post_id>/comments', methods=['GET'])
+@token_required
+def get_post_comments(current_user_id, post_id):
+    # Get page number from query string, default to 1
+    page = request.args.get('page', 1, type=int)
+    per_page = 5 # Number of comments to load per click
+    offset = (page - 1) * per_page
+
+    comments = db_queries.get_comments_by_post(post_id, per_page, offset)
+    
+    return jsonify({
+        "comments": comments,
+        "page": page,
+        "next_page": page + 1 if len(comments) == per_page else None
+    }), 200
+
 if __name__ == '__main__':
   app.run(debug=True, port=5000)

@@ -34,7 +34,7 @@ CREATE TABLE PollVotes (
     FOREIGN KEY (UserID) REFERENCES Users(UserID),
     FOREIGN KEY (PostID) REFERENCES Posts(PostID) ON DELETE CASCADE,
     FOREIGN KEY (OptionID) REFERENCES PollOptions(OptionID) ON DELETE CASCADE,
-    UNIQUE KEY user_vote_per_poll (UserID, PostID) -- This prevents a user from voting twice on the same poll
+    UNIQUE KEY user_vote_per_poll (UserID, PostID)
 );
 
 CREATE TABLE ItemVotes (
@@ -46,4 +46,14 @@ CREATE TABLE ItemVotes (
     FOREIGN KEY (UserID) REFERENCES Users(UserID),
     FOREIGN KEY (PostID) REFERENCES Posts(PostID) ON DELETE CASCADE,
     UNIQUE KEY user_vote_per_item (UserID, PostID)
+);
+
+CREATE TABLE Comments (
+    CommentID INT AUTO_INCREMENT PRIMARY KEY,
+    PostID INT NOT NULL,
+    UserID INT NOT NULL,
+    Content TEXT NOT NULL,
+    Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (PostID) REFERENCES Posts(PostID) ON DELETE CASCADE,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID)
 );

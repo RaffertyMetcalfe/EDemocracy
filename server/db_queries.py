@@ -123,7 +123,8 @@ def get_feed_posts(user_id):
                 u.Username AS AuthorUsername,
                 po.OptionID,
                 po.OptionText,
-                po.VoteCount
+                po.VoteCount,
+                (SELECT COUNT(*) FROM Comments c WHERE c.PostID = p.PostID) AS CommentCount
             FROM Posts p
             JOIN Users u ON p.AuthorUserID = u.UserID
             LEFT JOIN PollOptions po ON p.PostID = po.PostID
@@ -156,6 +157,7 @@ def get_feed_posts(user_id):
                     "CreationTimestamp": row['CreationTimestamp'],
                     "AuthorUsername": row['AuthorUsername'],
                     "Options": [],
+                    "CommentCount": row['CommentCount'],
                     "userHasVoted": has_voted,
                     "priority": False  # Default priority to False
                 }
@@ -176,7 +178,7 @@ def get_feed_posts(user_id):
                 posts[post_id]["Options"].append({
                     "OptionID": row['OptionID'],
                     "OptionText": row['OptionText'],
-                    "VoteCount": row['VoteCount']
+                    "VoteCount": row['VoteCount'],
                 })
     except Error as e:
         print(f"Error in collate_polls: {e}")
@@ -289,3 +291,49 @@ def record_item_vote(user_id, post_id, choice):
             cursor.close()
             conn.close()
     return success
+
+def create_comment(user_id, post_id, content):
+    conn = get_db_connection()
+    if not conn:
+        return False
+    success = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Comments (PostID, UserID, Content) VALUES (%s, %s, %s)", (post_id, user_id, content))
+        conn.commit()
+        success = True
+    except Error as e:
+        print(f"Error in create_comment: {e}")
+        if conn.is_connected():
+            conn.rollback()
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return success
+
+def get_comments_by_post(post_id, limit=25, offset=0):
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    comments = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT c.CommentID, c.Content, c.Timestamp, u.Username
+            FROM Comments c
+            JOIN Users u ON c.UserID = u.UserID
+            WHERE c.PostID = %s
+            ORDER BY c.Timestamp ASC
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(query, (post_id, limit, offset))
+        comments = cursor.fetchall()
+    except Error as e:
+        print(f"Error in get_comments_by_post: {e}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return comments    

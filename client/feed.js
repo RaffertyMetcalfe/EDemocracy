@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.appendChild(title);
         card.appendChild(meta);
         card.appendChild(content);
+        card.appendChild(createCommentSection(post));
 
         return card;
     }
@@ -167,6 +168,96 @@ document.addEventListener('DOMContentLoaded', () => {
         return form;
     }
 
+    function createCommentSection(post) {
+        const section = document.createElement('div');
+        section.className = 'comments-section';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'toggle-comments-btn';
+        toggleBtn.textContent = post.CommentCount > 0 ? `View Comments (${post.CommentCount})` : 'Add a Comment';
+
+        const commentsContainer = document.createElement('div');
+        commentsContainer.className = 'comments-container';
+        commentsContainer.style.display = 'none'; // Hidden by default
+        commentsContainer.dataset.loadedPages = 0;
+        commentsContainer.dataset.postId = post.PostID;
+
+        const list = document.createElement('div');
+        list.className = 'comments-list';
+        commentsContainer.appendChild(list);
+
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'load-more-comments-btn';
+        loadMoreBtn.textContent = 'Load More';
+        loadMoreBtn.style.display = 'none';
+
+        const form = document.createElement('form');
+        form.className = 'comment-form';
+        form.dataset.postId = post.PostID;
+        form.innerHTML = `
+            <textarea name="comment" placeholder="Write your comment..." rows="1" required></textarea>
+            <button type="submit">Submit Comment</button>
+        `;
+
+        commentsContainer.appendChild(loadMoreBtn);
+        commentsContainer.appendChild(form);
+
+        toggleBtn.addEventListener('click', () => {
+            if (commentsContainer.style.display === 'none') {
+                commentsContainer.style.display = 'block';
+                toggleBtn.textContent = 'Hide Comments';
+
+                if (post.CommentCount > 0 && commentsContainer.dataset.loadedPages === "0") {
+                    fetchComments(post.PostID, 1, list, loadMoreBtn);
+                }
+            } else {
+                commentsContainer.style.display = 'none';
+                toggleBtn.textContent = post.CommentCount > 0 ? `View Comments (${post.CommentCount})` : 'Add a Comment';
+            }
+        });
+
+        loadMoreBtn.addEventListener('click', () => {
+            const nextPage = parseInt(commentsContainer.dataset.loadedPages) + 1;
+            fetchComments(post.PostID, nextPage, list, loadMoreBtn);
+        });
+
+        section.appendChild(toggleBtn);
+        section.appendChild(commentsContainer);
+        return section;
+    }
+
+    async function fetchComments(postId, page, listElement, loadMoreBtn) {
+        try {
+            loadMoreBtn.textContent = 'Loading...';
+            const response = await fetch(`http://localhost:5000/api/posts/${postId}/comments?page=${page}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                data.comments.forEach(comment => {
+                    const el = document.createElement('div');
+                    el.className = 'comment-item';
+                    el.innerHTML = `
+                        <strong>${comment.Username}</strong>:
+                        <span>${comment.Content}</span>
+                        <div class="comment-date">${new Date(comment.Timestamp).toLocaleString()}</div>
+                    `;
+                    listElement.appendChild(el);
+                });
+
+                if (data.nextPage) {
+                    loadMoreBtn.style.display = 'block';
+                    loadMoreBtn.textContent = 'Load More';
+                } else {
+                    loadMoreBtn.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+            loadMoreBtn.textContent = 'Error loading';
+        }
+    }
     const fetchFeed = async () => {
         try {
             const response = await fetch('http://localhost:5000/api/feed', {
@@ -179,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Clear any previous content
                 feedContainer.innerHTML = ''; 
                 if (posts.length === 0) {
-                    feedContainer.textContent = 'No polls have been created yet.';
+                    feedContainer.textContent = 'Nothing here at the moment...';
                 } else {
                     // For each post object, handle based on its type
                     posts.forEach(post => {
@@ -200,76 +291,120 @@ document.addEventListener('DOMContentLoaded', () => {
         };    
 
         feedContainer.addEventListener("submit", async e => {
-        e.preventDefault();
+            e.preventDefault();
 
-        const form = e.target;
-        const card = form.closest(".post-card");
-        const selectedOption = form.querySelector("input[type='radio']:checked");
-        const postId = card.dataset.postId;
-        const voteMessage = form.querySelector(".vote-message");
+            const form = e.target;
 
-        if(!selectedOption){
-            voteMessage.textContent = "Please select an option before voting.";
-            return;
-        }
-        if (form.classList.contains("poll-options")) {
-            try {
-                const response = await fetch("http://localhost:5000/api/vote", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        PostId: postId,
-                        OptionId: selectedOption.value
-                    })
-                });
+            if (form.classList.contains("comment-form")) {
+                const postId = form.dataset.postId;
+                const textarea = form.querySelector("textarea");
+                const btn = form.querySelector("button");
+                
+                if(!textarea.value.trim()) return;
 
-                if(response.ok){
-                    voteMessage.textContent = "Vote submitted successfully!";
-                    // Disable further voting on this poll
-                    form.querySelectorAll("input[type='radio']").forEach(input => input.disabled = true);
-                    form.querySelector(".vote-button").disabled = true;
-                    form.querySelector(".vote-button").textContent = "Voted!";
-                } else {
-                    const err = await response.json();
-                    voteMessage.textContent = err.message || "Failed to submit vote.";
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch("http://localhost:5000/api/comments", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ postId: postId, content: textarea.value })
+                    });
+
+                    if (response.ok) {
+                        const list = form.parentElement.querySelector('.comments-list');
+                        
+                        const el = document.createElement('div');
+                        el.className = 'comment-item highlight-new'; 
+                        el.innerHTML = `
+                            <strong>You</strong>: 
+                            <span>${textarea.value}</span>
+                            <div class="comment-date">Just now</div>
+                        `;
+                        list.appendChild(el);
+                        
+                        textarea.value = '';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Error posting comment");
+                } finally {
+                    btn.disabled = false;
                 }
-            } catch(err){
-                console.error("Vote error:", err);
-                voteMessage.textContent = "Could not submit vote. Try again later.";
-            }
-        } else if (form.classList.contains("item-vote-options")) {
-            const voteAuthToken = form.dataset.voteAuthToken;
-            if (!voteAuthToken) {
-                voteMessage.textContent = "Cannot vote: missing authorization token.";
                 return;
             }
-            try {
-                const response = await fetch("http://localhost:5000/api/item-votes", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({
-                        PostId: postId,
-                        Choice: selectedOption.value,
-                        AuthToken: voteAuthToken
-                    })
-                });
-                if (response.ok) {
-                    voteMessage.textContent = "Final vote recorded!";
-                    form.querySelectorAll("input, button").forEach(el => el.disabled = true);
-                    form.querySelector(".vote-button").textContent = "Voted!";
-                } else {
-                    const err = await response.json();
-                    voteMessage.textContent = err.error || "Failed to record vote.";
+
+            const card = form.closest(".post-card");
+            const selectedOption = form.querySelector("input[type='radio']:checked");
+            const postId = card.dataset.postId;
+            const voteMessage = form.querySelector(".vote-message");
+
+            if(!selectedOption){
+                voteMessage.textContent = "Please select an option before voting.";
+                return;
+            }
+            if (form.classList.contains("poll-options")) {
+                try {
+                    const response = await fetch("http://localhost:5000/api/vote", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            PostId: postId,
+                            OptionId: selectedOption.value
+                        })
+                    });
+
+                    if(response.ok){
+                        voteMessage.textContent = "Vote submitted successfully!";
+                        // Disable further voting on this poll
+                        form.querySelectorAll("input[type='radio']").forEach(input => input.disabled = true);
+                        form.querySelector(".vote-button").disabled = true;
+                        form.querySelector(".vote-button").textContent = "Voted!";
+                    } else {
+                        const err = await response.json();
+                        voteMessage.textContent = err.message || "Failed to submit vote.";
+                    }
+                } catch(err){
+                    console.error("Vote error:", err);
+                    voteMessage.textContent = "Could not submit vote. Try again later.";
                 }
-            } catch (err) {
-                console.error("Item vote error:", err);
-                voteMessage.textContent = "Could not record vote.";
+            } else if (form.classList.contains("item-vote-options")) {
+                const voteAuthToken = form.dataset.voteAuthToken;
+                if (!voteAuthToken) {
+                    voteMessage.textContent = "Cannot vote: missing authorization token.";
+                    return;
+                }
+                try {
+                    const response = await fetch("http://localhost:5000/api/item-votes", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                        body: JSON.stringify({
+                            PostId: postId,
+                            Choice: selectedOption.value,
+                            AuthToken: voteAuthToken
+                        })
+                    });
+                    if (response.ok) {
+                        voteMessage.textContent = "Final vote recorded!";
+                        form.querySelectorAll("input, button").forEach(el => el.disabled = true);
+                        form.querySelector(".vote-button").textContent = "Voted!";
+                    } else {
+                        const err = await response.json();
+                        voteMessage.textContent = err.error || "Failed to record vote.";
+                    }
+                } catch (err) {
+                    console.error("Item vote error:", err);
+                    voteMessage.textContent = "Could not record vote.";
+                }
             }
         }
-    });
+    );
             
     // --- 5. Logout Functionality ---
     const handleLogout = () => {
