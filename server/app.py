@@ -12,6 +12,7 @@ from flask_cors import CORS
 # PyJWT: https://pyjwt.readthedocs.io/
 import jwt
 import datetime
+import re
 from functools import wraps
 # (local module)
 import db_queries
@@ -75,6 +76,16 @@ def register_user():
 
   if not all([username, email, password]):
     return make_response(jsonify({"error": "Missing required fields"}), 400)
+  
+  if not username or not re.match(r'^[a-zA-Z0-9_]+$', username) or len(username) > 50:
+    return make_response(jsonify({"error": "Invalid username"}), 400)
+
+  if not email or not re.match(r'^[^@]+@[^@]+\.[^@]+$', email) or len(email) > 100:
+    return make_response(jsonify({"error": "Invalid email"}), 400)
+
+  if not password or len(password) < 8:
+    return make_response(jsonify({"error": "Password must be at least 8 characters"}), 400)
+
 
   password_bytes = password.encode('utf-8')
   hashed_password = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
@@ -98,6 +109,9 @@ def login_user():
 
   if not email or not password:
     return make_response(jsonify({"error": "Missing email or password"}), 400)
+  
+  if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+    return make_response(jsonify({"error": "Invalid email format"}), 400)
 
   user_record = db_queries.find_user_by_email(email)
 
@@ -135,6 +149,13 @@ def create_post(current_user_id):
 
         if not title or not options or not isinstance(options, list) or len(options) < 2:
             return make_response(jsonify({"error": "A poll must have a title and at least two options."}), 400)
+        
+        if len(title) > 200 or not title.strip():
+          return make_response(jsonify({"error": "Invalid poll title"}), 400)
+
+        for option in options:
+            if not isinstance(option, str) or len(option) > 100 or not option.strip():
+                return make_response(jsonify({"error": "Invalid poll option"}), 400)
 
         if db_queries.create_poll(current_user_id, title, options):
             return jsonify({"message": "Poll created successfully"}), 201
@@ -146,21 +167,32 @@ def create_post(current_user_id):
       content = data.get('content')
       if not content:
         return make_response(jsonify({"error": "Announcement content is required."}), 400)
+      if len(title) > 200 or not title.strip():
+        return make_response(jsonify({"error": "Invalid announcement title"}), 400)
+      if len(content) > 1000 or not content.strip():
+        return make_response(jsonify({"error": "Invalid announcement content"}), 400)
       db_queries.create_announcement(current_user_id, title, content)
       return jsonify({"message": "Announcement created successfully"}), 201
     
     elif post_type == 'ForumTopic':
         title = data.get('title')
         content = data.get('content') if data.get('content') else ''
+        if len(title) > 200 or not title.strip():
+            return make_response(jsonify({"error": "Invalid forum topic title"}), 400)
+        if content and (len(content) > 1000 or not content.strip()):
+            return make_response(jsonify({"error": "Invalid forum topic content"}), 400)
         db_queries.create_forum_topic(current_user_id, title, content)
         return jsonify({"message": "Forum topic created successfully"}), 201
       
     elif post_type == 'VoteItem':
       title = data.get('title')
-      if db_queries.create_vote_item(current_user_id, title):
+      if len(title) > 200 or not title.strip():
+        return make_response(jsonify({"error": "Invalid vote item title"}), 400)
+      elif db_queries.create_vote_item(current_user_id, title):
         return jsonify({"message": "Vote item created successfully"}), 201
       else:
         return make_response(jsonify({"error": "Failed to create vote item"}), 500)
+      
     else:
         return make_response(jsonify({"error": "Invalid or missing 'postType'."}), 400)
       
@@ -233,6 +265,9 @@ def post_comment(current_user_id):
     
     if not post_id or not content:
         return make_response(jsonify({"error": "Missing data"}), 400)
+    
+    if not content.strip():
+        return make_response(jsonify({"error": "Invalid comment content"}), 400)
 
     if db_queries.create_comment(current_user_id, post_id, content):
         return jsonify({"message": "Comment added"}), 201
