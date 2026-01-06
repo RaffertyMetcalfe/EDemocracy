@@ -42,8 +42,9 @@ document.addEventListener("DOMContentLoaded", () => {
         card.appendChild(title);
         card.appendChild(meta);
         card.appendChild(content);
-        card.appendChild(createCommentSection(post));
-
+        if (post.AllowComments) {
+            card.appendChild(createCommentSection(post));
+        }
         return card;
     }
 
@@ -204,6 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
         form.innerHTML = `
             <textarea name="comment" placeholder="Write your comment..." rows="1" required></textarea>
             <button type="submit">Submit Comment</button>
+            <div class="comment-error" style="color: red; margin-top: 5px;"></div>
         `;
 
         commentsContainer.appendChild(loadMoreBtn);
@@ -352,10 +354,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     list.appendChild(el);
 
                     textarea.value = "";
+                    const errorDiv = form.querySelector(".comment-error");
+                    errorDiv.textContent = "";
+                } else {
+                    const err = await response.json();
+                    const errorDiv = form.querySelector(".comment-error");
+                    errorDiv.textContent =
+                        err.error || "Failed to post comment";
                 }
             } catch (err) {
                 console.error(err);
-                alert("Error posting comment");
+                const errorDiv = form.querySelector(".comment-error");
+                errorDiv.textContent = "Network error";
             } finally {
                 btn.disabled = false;
             }
@@ -398,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else {
                     const err = await response.json();
                     voteMessage.textContent =
-                        err.message || "Failed to submit vote.";
+                        err.error || "Failed to submit vote.";
                 }
             } catch (err) {
                 console.error("Vote error:", err);

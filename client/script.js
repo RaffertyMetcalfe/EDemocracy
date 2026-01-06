@@ -41,7 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 console.error("Registration failed:", result.error);
                 messageContainer.textContent =
-                    result.message || "Registration failed. Please try again.";
+                    result.error ||
+                    result.message ||
+                    "Registration failed. Please try again.";
                 messageContainer.classList.add("error");
                 form.reset();
             }

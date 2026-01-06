@@ -13,6 +13,7 @@ CREATE TABLE Posts (
     PostType ENUM('Announcement', 'Poll', 'Discussion', 'VoteItem', 'ForumTopic') NOT NULL,
     Title VARCHAR(255) NOT NULL,
     Content TEXT,
+    AllowComments BOOLEAN DEFAULT TRUE,
     CreationTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (AuthorUserID) REFERENCES Users(UserID)
 );

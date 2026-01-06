@@ -1,53 +1,144 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin: Create Post</title>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Admin: Create Post</title>
+        <style>
+            body {
+                font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                background-color: #f0f2f5;
+                color: #1c1e21;
+                display: flex;
+                justify-content: center;
+                margin: 0;
+                padding-top: 40px;
+            }
+            .container {
+                width: 100%;
+                max-width: 600px;
+                background-color: #ffffff;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+                border-bottom: 1px solid #dddfe2;
+                padding-bottom: 10px;
+                margin-top: 0;
+            }
+            label {
+                font-weight: 600;
+            }
+            input,
+            select,
+            textarea {
+                padding: 8px;
+                border: 1px solid #dddfe2;
+                border-radius: 6px;
+                font-size: 1rem;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            textarea {
+                resize: vertical;
+            }
+            button {
+                padding: 10px 15px;
+                cursor: pointer;
+                background-color: #e4e6eb;
+                border: none;
+                border-radius: 6px;
+                font-weight: 600;
+            }
+            button:hover {
+                background-color: #d8dbdf;
+            }
+            .submit-btn {
+                background-color: #1877f2;
+                color: white;
+                font-weight: bold;
+            }
+            .submit-btn:hover {
+                background-color: #166fe5;
+            }
+            #message-container {
+                margin-top: 20px;
+                padding: 10px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            .poll-option-input {
+                margin-bottom: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Create a New Post</h1>
+            <hr />
 
-    <h1>Create a New Post</h1>
-    <hr>
+            <form id="create-post-form">
+                <label for="post-type-select">Select Post Type:</label><br />
+                <select id="post-type-select" name="postType">
+                    <option value="">--Please choose an option--</option>
+                    <option value="Announcement">Announcement</option>
+                    <option value="Poll">Poll</option>
+                    <option value="ForumTopic">Forum Topic</option>
+                    <option value="VoteItem">Vote Item</option>
+                </select>
 
-    <form id="create-post-form">
-        
-        <label for="post-type-select">Select Post Type:</label><br>
-        <select id="post-type-select" name="postType">
-            <option value="">--Please choose an option--</option>
-            <option value="Announcement">Announcement</option>
-            <option value="Poll">Poll</option>
-            <option value="ForumTopic">Forum Topic</option>
-            <option value="VoteItem">Vote Item</option>
-        </select>
-        
-        <br><br>
+                <br /><br />
 
-        <label for="post-title">Title:</label><br>
-        <input type="text" id="post-title" name="title" size="50" required>
-        
-        <br><br>
+                <label for="post-title">Title:</label><br />
+                <input
+                    type="text"
+                    id="post-title"
+                    name="title"
+                    size="50"
+                    required
+                />
 
-        <div id="content-section" style="display: none;">
-            <label for="post-content">Content/Description:</label><br>
-            <textarea id="post-content" name="content" rows="8" cols="50"></textarea>
+                <br /><br />
+
+                <div id="content-section" style="display: none">
+                    <label for="post-content">Content/Description:</label><br />
+                    <textarea
+                        id="post-content"
+                        name="content"
+                        rows="8"
+                        cols="50"
+                    ></textarea>
+                </div>
+
+                <div id="poll-options-section" style="display: none">
+                    <label>Poll Options:</label><br />
+                    <div id="poll-options-container"></div>
+                    <br />
+                    <button type="button" id="add-option-btn">
+                        Add Another Option
+                    </button>
+                </div>
+
+                <br /><br />
+
+                <label>
+                    <input
+                        type="checkbox"
+                        id="disable-comments"
+                        name="disableComments"
+                    />
+                    Disable Comments
+                </label>
+
+                <br /><br />
+                <hr />
+
+                <button type="submit" class="submit-btn">Create Post</button>
+            </form>
+
+            <div id="message-container"></div>
         </div>
 
-        <div id="poll-options-section" style="display: none;">
-            <label>Poll Options:</label><br>
-            <div id="poll-options-container">
-            </div>
-            <br>
-            <button type="button" id="add-option-btn">Add Another Option</button>
-        </div>
-
-        <br><br>
-        <hr>
-
-        <button type="submit">Create Post</button>
-    </form>
-
-    <div id="message-container" style="margin-top: 20px; font-weight: bold;"></div>
-
-    <script src="create.js"></script>
-</body>
+        <script src="create.js"></script>
+    </body>
 </html>

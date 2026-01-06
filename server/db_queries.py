@@ -68,7 +68,7 @@ def get_user_profile_by_id(user_id):
     user_profile = None
     try:
         cursor = conn.cursor(prepared=True, dictionary=True)
-        cursor.execute("SELECT UserID, Username, Email, RegistrationTimestamp FROM users WHERE UserID = %s", (user_id,))
+        cursor.execute("SELECT UserID, Username, Email, Role, RegistrationTimestamp FROM users WHERE UserID = %s", (user_id,))
         user_profile = cursor.fetchone()
     except Error as e:
         print(f"Error in get_user_profile_by_id: {e}")
@@ -78,7 +78,47 @@ def get_user_profile_by_id(user_id):
             conn.close()
     return user_profile
 
-def create_poll(user_id, question, options):
+def get_user_role(user_id):
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    role = None
+    try:
+        cursor = conn.cursor(prepared=True)
+        cursor.execute("SELECT Role FROM users WHERE UserID = %s", (user_id,))
+        result = cursor.fetchone()
+        if result:
+            role = result[0]
+    except Error as e:
+        print(f"Error in get_user_role: {e}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return role
+
+def get_post_allow_comments(post_id):
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    allow_comments = None
+    try:
+        cursor = conn.cursor(prepared=True)
+        cursor.execute("SELECT AllowComments FROM Posts WHERE PostID = %s", (post_id,))
+        result = cursor.fetchone()
+        if result:
+            allow_comments = result[0]
+    except Error as e:
+        print(f"Error in get_post_allow_comments: {e}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return allow_comments
+
+def create_poll(user_id, question, options, allow_comments=True):
     conn = get_db_connection()
     if not conn:
         return False
@@ -86,7 +126,7 @@ def create_poll(user_id, question, options):
     success = False
     try:
         cursor = conn.cursor(prepared=True)
-        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title) VALUES (%s, %s, %s)", (user_id, "Poll",  question))
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, AllowComments) VALUES (%s, %s, %s, %s)", (user_id, "Poll",  question, allow_comments))
         post_id = cursor.lastrowid
         
         for option in options:
@@ -120,6 +160,7 @@ def get_feed_posts(user_id):
                 p.CreationTimestamp,
                 p.Content,
                 p.PostType,
+                p.AllowComments,
                 u.Username AS AuthorUsername,
                 po.OptionID,
                 po.OptionText,
@@ -212,12 +253,12 @@ def record_poll_vote(user_id, post_id, option_id):
             conn.close()
     return success
 
-def create_announcement(user_id, title, content):
+def create_announcement(user_id, title, content, allow_comments=True):
     conn = get_db_connection()
     success = False
     try:
         cursor = conn.cursor(prepared=True)
-        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, Content) VALUES (%s, %s, %s, %s)", (user_id, "Announcement", title, content))
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, Content, AllowComments) VALUES (%s, %s, %s, %s, %s)", (user_id, "Announcement", title, content, allow_comments))
         conn.commit()
         success = True
     except Error as e:
@@ -231,12 +272,12 @@ def create_announcement(user_id, title, content):
     return success
 
 # Full functionality will be added with forum sub-project later
-def create_forum_topic(user_id, title, content):
+def create_forum_topic(user_id, title, content, allow_comments=True):
     conn = get_db_connection()
     success = False
     try:
         cursor = conn.cursor(prepared=True)
-        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, Content) VALUES (%s, %s, %s, %s)", (user_id, "ForumTopic", title, content))
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, Content, AllowComments) VALUES (%s, %s, %s, %s, %s)", (user_id, "ForumTopic", title, content, allow_comments))
         conn.commit()
         success = True
     except Error as e:
@@ -250,7 +291,7 @@ def create_forum_topic(user_id, title, content):
     return success
 
 
-def create_vote_item(user_id, title):
+def create_vote_item(user_id, title, allow_comments=True):
     conn = get_db_connection()
     if not conn:
         return False
@@ -258,7 +299,7 @@ def create_vote_item(user_id, title):
     success = False
     try:
         cursor = conn.cursor(prepared=True)
-        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title) VALUES (%s, %s, %s)", (user_id, "VoteItem", title))
+        cursor.execute("INSERT INTO Posts (AuthorUserID, PostType, Title, AllowComments) VALUES (%s, %s, %s, %s)", (user_id, "VoteItem", title, allow_comments))
         conn.commit()
         success = True
     except Error as e:

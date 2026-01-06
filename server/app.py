@@ -1,4 +1,3 @@
-import os
 # Flask: https://flask.palletsprojects.com/
 from flask import Flask, jsonify, request, make_response
 # python-dotenv: https://pypi.org/project/python-dotenv/
@@ -11,6 +10,7 @@ import bcrypt
 from flask_cors import CORS
 # PyJWT: https://pyjwt.readthedocs.io/
 import jwt
+import os
 import datetime
 import re
 from functools import wraps
@@ -143,6 +143,17 @@ def get_profile(current_user_id):
 def create_post(current_user_id):
     data = request.get_json()
     post_type = data.get('postType')
+    allow_comments = data.get('allowComments', True)
+    
+    # Get user's role for permission checks
+    user_role = db_queries.get_user_role(current_user_id)
+    if not user_role:
+        return make_response(jsonify({"error": "User not found"}), 404)
+    
+    # Citizens can only create Polls and ForumTopics
+    if user_role == 'Citizen' and post_type in ['Announcement', 'VoteItem']:
+        return make_response(jsonify({"error": "You do not have permission to create this post type"}), 403)
+    
     if post_type == 'Poll':
         title = data.get('title')
         options = data.get('options')
@@ -157,7 +168,7 @@ def create_post(current_user_id):
             if not isinstance(option, str) or len(option) > 100 or not option.strip():
                 return make_response(jsonify({"error": "Invalid poll option"}), 400)
 
-        if db_queries.create_poll(current_user_id, title, options):
+        if db_queries.create_poll(current_user_id, title, options, allow_comments):
             return jsonify({"message": "Poll created successfully"}), 201
         else:
             return make_response(jsonify({"error": "Failed to create poll"}), 500)
@@ -171,7 +182,7 @@ def create_post(current_user_id):
         return make_response(jsonify({"error": "Invalid announcement title"}), 400)
       if len(content) > 1000 or not content.strip():
         return make_response(jsonify({"error": "Invalid announcement content"}), 400)
-      db_queries.create_announcement(current_user_id, title, content)
+      db_queries.create_announcement(current_user_id, title, content, allow_comments)
       return jsonify({"message": "Announcement created successfully"}), 201
     
     elif post_type == 'ForumTopic':
@@ -181,14 +192,14 @@ def create_post(current_user_id):
             return make_response(jsonify({"error": "Invalid forum topic title"}), 400)
         if content and (len(content) > 1000 or not content.strip()):
             return make_response(jsonify({"error": "Invalid forum topic content"}), 400)
-        db_queries.create_forum_topic(current_user_id, title, content)
+        db_queries.create_forum_topic(current_user_id, title, content, allow_comments)
         return jsonify({"message": "Forum topic created successfully"}), 201
       
     elif post_type == 'VoteItem':
       title = data.get('title')
       if len(title) > 200 or not title.strip():
         return make_response(jsonify({"error": "Invalid vote item title"}), 400)
-      elif db_queries.create_vote_item(current_user_id, title):
+      elif db_queries.create_vote_item(current_user_id, title, allow_comments):
         return jsonify({"message": "Vote item created successfully"}), 201
       else:
         return make_response(jsonify({"error": "Failed to create vote item"}), 500)
@@ -269,6 +280,11 @@ def post_comment(current_user_id):
     if not content.strip():
         return make_response(jsonify({"error": "Invalid comment content"}), 400)
 
+    # Check if comments are allowed on this post
+    allow_comments = db_queries.get_post_allow_comments(post_id)
+    if allow_comments is False:
+        return make_response(jsonify({"error": "Comments are disabled for this post"}), 403)
+
     if db_queries.create_comment(current_user_id, post_id, content):
         return jsonify({"message": "Comment added"}), 201
     else:
@@ -277,6 +293,15 @@ def post_comment(current_user_id):
 @app.route('/api/posts/<int:post_id>/comments', methods=['GET'])
 @token_required
 def get_post_comments(current_user_id, post_id):
+    # Check if comments are allowed on this post
+    allow_comments = db_queries.get_post_allow_comments(post_id)
+    if allow_comments is False:
+        return jsonify({
+            "comments": [],
+            "page": 1,
+            "next_page": None
+        }), 200
+
     # Get page number from query string, default to 1
     page = request.args.get('page', 1, type=int)
     per_page = 5 # Number of comments to load per click
