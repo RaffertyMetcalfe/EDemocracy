@@ -79,7 +79,11 @@
 
             <form id="create-post-form">
                 <label for="post-type-select">Select Post Type:</label><br />
-                <select id="post-type-select" name="postType">
+                <select
+                    id="post-type-select"
+                    name="postType"
+                    aria-label="Select the type of post to create"
+                >
                     <option value="">--Please choose an option--</option>
                     <option value="Announcement">Announcement</option>
                     <option value="Poll">Poll</option>
@@ -96,6 +100,7 @@
                     name="title"
                     size="50"
                     required
+                    aria-label="Enter the title for your post"
                 />
 
                 <br /><br />
@@ -107,6 +112,7 @@
                         name="content"
                         rows="8"
                         cols="50"
+                        aria-label="Enter the content or description for your post"
                     ></textarea>
                 </div>
 
@@ -126,6 +132,7 @@
                         type="checkbox"
                         id="disable-comments"
                         name="disableComments"
+                        aria-label="Check to disable comments on this post"
                     />
                     Disable Comments
                 </label>

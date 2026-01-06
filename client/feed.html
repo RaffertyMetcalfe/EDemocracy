@@ -1,186 +1,186 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Feed - Edem</title>
-    <style>
-        body { 
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #1c1e21;
-            display: flex;
-            justify-content: center;
-            margin: 0;
-            padding-top: 40px;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            border-bottom: 1px solid #dddfe2;
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-        button {
-            padding: 10px 15px;
-            cursor: pointer;
-            background-color: #e4e6eb;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-        button:hover {
-            background-color: #d8dbdf;
-        }
-        #profile-container {
-            margin-top: 20px;
-            background-color: #f7f7f7;
-            padding: 15px;
-            border-radius: 6px;
-        }
-        pre {
-            white-space: pre-wrap;
-            font-family: "Courier New", Courier, monospace;
-        }
-        #error-container {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            color: #c01627;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-        }
-        .post-card {
-            border: 1px solid #dddfe2;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-            background-color: #ffffff;
-        }
-        .post-title {
-            margin-top: 0;
-            font-size: 1.2rem;
-        }
-        .post-meta {
-            font-size: 0.8rem;
-            color: #65676b;
-            margin-bottom: 15px;
-        }
-        .poll-options {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Your Feed - Edem</title>
+        <style>
+            body {
+                font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                background-color: #f0f2f5;
+                color: #1c1e21;
+                display: flex;
+                justify-content: center;
+                margin: 0;
+                padding-top: 40px;
+            }
+            .container {
+                width: 100%;
+                max-width: 600px;
+                background-color: #ffffff;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+                border-bottom: 1px solid #dddfe2;
+                padding-bottom: 10px;
+                margin-top: 0;
+            }
+            button {
+                padding: 10px 15px;
+                cursor: pointer;
+                background-color: #e4e6eb;
+                border: none;
+                border-radius: 6px;
+                font-weight: 600;
+            }
+            button:hover {
+                background-color: #d8dbdf;
+            }
+            #profile-container {
+                margin-top: 20px;
+                background-color: #f7f7f7;
+                padding: 15px;
+                border-radius: 6px;
+            }
+            pre {
+                white-space: pre-wrap;
+                font-family: "Courier New", Courier, monospace;
+            }
+            #error-container {
+                margin-top: 15px;
+                padding: 10px;
+                border-radius: 5px;
+                color: #c01627;
+                background-color: #f8d7da;
+                border: 1px solid #f5c6cb;
+            }
+            .post-card {
+                border: 1px solid #dddfe2;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 20px;
+                background-color: #ffffff;
+            }
+            .post-title {
+                margin-top: 0;
+                font-size: 1.2rem;
+            }
+            .post-meta {
+                font-size: 0.8rem;
+                color: #65676b;
+                margin-bottom: 15px;
+            }
+            .poll-options {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
 
-        .option-container {
-            display: flex;
-            align-items: center;
-            background-color: #f0f2f5;
-            padding: 10px;
-            border-radius: 6px;
-        }
+            .option-container {
+                display: flex;
+                align-items: center;
+                background-color: #f0f2f5;
+                padding: 10px;
+                border-radius: 6px;
+            }
 
-        .option-container input[type="radio"] {
-            margin-right: 10px;
-            transform: scale(1.2); 
-        }
+            .option-container input[type="radio"] {
+                margin-right: 10px;
+                transform: scale(1.2);
+            }
 
-        .option-container label {
-            flex-grow: 1;
-            cursor: pointer;
-        }
+            .option-container label {
+                flex-grow: 1;
+                cursor: pointer;
+            }
 
-        .vote-count {
-            font-size: 0.9em;
-            color: #65676b;
-        }
+            .vote-count {
+                font-size: 0.9em;
+                color: #65676b;
+            }
 
-        .vote-button {
-            align-self: flex-start;
-            margin-top: 10px;
-            background-color: #1877f2;
-            color: white;
-            font-weight: bold;
-        }
+            .vote-button {
+                align-self: flex-start;
+                margin-top: 10px;
+                background-color: #1877f2;
+                color: white;
+                font-weight: bold;
+            }
 
-        .vote-button:hover {
-            background-color: #166fe5;
-        }   
+            .vote-button:hover {
+                background-color: #166fe5;
+            }
 
-        .vote-button:disabled {
-            background-color: #a0a0a0;
-            cursor: not-allowed;
-        }
+            .vote-button:disabled {
+                background-color: #a0a0a0;
+                cursor: not-allowed;
+            }
 
-        .vote-message {
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
+            .vote-message {
+                margin-top: 10px;
+                font-size: 0.9em;
+            }
 
-        .toggle-comments-btn {
-            background: none;
-            border: none;
-            color: #007bff;
-            cursor: pointer;
-            font-size: 0.9em;
-            padding: 10px 0;
-            text-decoration: underline;
-        }
+            .toggle-comments-btn {
+                background: none;
+                border: none;
+                color: #007bff;
+                cursor: pointer;
+                font-size: 0.9em;
+                padding: 10px 0;
+                text-decoration: underline;
+            }
 
-        .comments-container {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 5px;
-        }
+            .comments-container {
+                background-color: #f8f9fa;
+                padding: 10px;
+                border-radius: 5px;
+                margin-top: 5px;
+            }
 
-        .load-more-comments-btn {
-            width: 100%;
-            background-color: #e2e6ea;
-            border: none;
-            padding: 5px;
-            margin: 5px 0;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
+            .load-more-comments-btn {
+                width: 100%;
+                background-color: #e2e6ea;
+                border: none;
+                padding: 5px;
+                margin: 5px 0;
+                cursor: pointer;
+                font-size: 0.8em;
+            }
 
-        .comment-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
+            .comment-item {
+                padding: 8px 0;
+                border-bottom: 1px solid #e9ecef;
+            }
 
-        .comment-date {
-            font-size: 0.7em;
-            color: #888;
-        }
+            .comment-date {
+                font-size: 0.7em;
+                color: #888;
+            }
 
-        .highlight-new {
-            background-color: #e8f4ff; /* Light blue flash for new comments */
-        }
+            .highlight-new {
+                background-color: #e8f4ff; /* Light blue flash for new comments */
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1 id="title">Welcome to Edem!</h1>
 
-    </style>
-</head>
-<body>
+            <div id="feed-container">
+                <p>Loading your feed...</p>
+            </div>
 
-    <div class="container">
-        <h1 id="title">Welcome to Edem!</h1>
+            <div id="error-container" style="display: none"></div>
 
-        <div id="feed-container">
-            <p>Loading your feed...</p>
+            <hr style="margin: 20px 0" />
+            <button id="logout-button" aria-label="Log out of your account">
+                Log Out
+            </button>
         </div>
 
-        <div id="error-container" style="display: none;"></div>
-
-        <hr style="margin: 20px 0;">
-        <button id="logout-button">Log Out</button>
-    </div>
-
-    <script src="feed.js"></script>
-</body>
+        <script src="feed.js"></script>
+    </body>
 </html>

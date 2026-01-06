@@ -80,6 +80,10 @@ document.addEventListener("DOMContentLoaded", () => {
         submitButton.type = "submit";
         submitButton.textContent = post.userHasVoted ? "Voted!" : "Submit Vote";
         submitButton.className = "vote-button";
+        submitButton.setAttribute(
+            "aria-label",
+            "Submit your vote for this poll",
+        );
         if (post.userHasVoted) submitButton.disabled = true;
 
         const voteMessage = document.createElement("div");
@@ -153,6 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
         submitButton.type = "submit";
         submitButton.textContent = "Submit Final Vote";
         submitButton.className = "vote-button";
+        submitButton.setAttribute("aria-label", "Submit your final vote");
 
         const voteMessage = document.createElement("div");
         voteMessage.className = "vote-message";
@@ -183,6 +188,8 @@ document.addEventListener("DOMContentLoaded", () => {
             post.CommentCount > 0
                 ? `View Comments (${post.CommentCount})`
                 : "Add a Comment";
+        toggleBtn.setAttribute("aria-expanded", "false");
+        toggleBtn.setAttribute("aria-label", "Toggle comments visibility");
 
         const commentsContainer = document.createElement("div");
         commentsContainer.className = "comments-container";
@@ -203,8 +210,8 @@ document.addEventListener("DOMContentLoaded", () => {
         form.className = "comment-form";
         form.dataset.postId = post.PostID;
         form.innerHTML = `
-            <textarea name="comment" placeholder="Write your comment..." rows="1" required></textarea>
-            <button type="submit">Submit Comment</button>
+            <textarea name="comment" placeholder="Write your comment..." rows="1" required aria-label="Write your comment here"></textarea>
+            <button type="submit" aria-label="Submit your comment">Submit Comment</button>
             <div class="comment-error" style="color: red; margin-top: 5px;"></div>
         `;
 
@@ -215,6 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (commentsContainer.style.display === "none") {
                 commentsContainer.style.display = "block";
                 toggleBtn.textContent = "Hide Comments";
+                toggleBtn.setAttribute("aria-expanded", "true");
 
                 if (
                     post.CommentCount > 0 &&
@@ -228,6 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     post.CommentCount > 0
                         ? `View Comments (${post.CommentCount})`
                         : "Add a Comment";
+                toggleBtn.setAttribute("aria-expanded", "false");
             }
         });
 
@@ -271,6 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else {
                     loadMoreBtn.style.display = "none";
                 }
+            } else {
+                loadMoreBtn.textContent = "Failed to load comments";
+                console.error("Failed to fetch comments:", response.status);
             }
         } catch (error) {
             console.error("Error fetching comments:", error);

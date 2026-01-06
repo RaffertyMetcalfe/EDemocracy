@@ -44,9 +44,34 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (announcementOption) announcementOption.disabled = true;
                     if (voteItemOption) voteItemOption.disabled = true;
                 }
+            } else {
+                console.warn(
+                    "Failed to load user role, assuming Citizen restrictions.",
+                );
+                // Assume Citizen and disable
+                const announcementOption = postTypeSelect.querySelector(
+                    'option[value="Announcement"]',
+                );
+                const voteItemOption = postTypeSelect.querySelector(
+                    'option[value="VoteItem"]',
+                );
+                if (announcementOption) announcementOption.disabled = true;
+                if (voteItemOption) voteItemOption.disabled = true;
             }
         } catch (error) {
-            console.error("Error loading user role:", error);
+            console.warn(
+                "Network error loading user role, assuming Citizen restrictions:",
+                error,
+            );
+            // Assume Citizen and disable
+            const announcementOption = postTypeSelect.querySelector(
+                'option[value="Announcement"]',
+            );
+            const voteItemOption = postTypeSelect.querySelector(
+                'option[value="VoteItem"]',
+            );
+            if (announcementOption) announcementOption.disabled = true;
+            if (voteItemOption) voteItemOption.disabled = true;
         }
     }
 
